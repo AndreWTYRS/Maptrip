@@ -1,6 +1,6 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
-import { GOOGLE_CLIENT_ID, isGoogleAuthConfigured, isMetaAuthConfigured, META_APP_ID } from '../config/auth'
+import { GOOGLE_CLIENT_ID, isGoogleAuthConfigured, isMetaAuthConfigured, META_APP_ID, PRODUCTION_ORIGIN } from '../config/auth'
 import { useFacebookSdk } from '../hooks/useFacebookSdk'
 import { useAuthStore } from '../store/authStore'
 import type { AuthUser } from '../types/auth'
@@ -12,11 +12,16 @@ interface GoogleJwtPayload {
   picture?: string
 }
 
+function isProductionHost(): boolean {
+  return window.location.origin === PRODUCTION_ORIGIN
+}
+
 export function AuthPanel() {
   const user = useAuthStore((s) => s.user)
   const setSession = useAuthStore((s) => s.setSession)
   const logout = useAuthStore((s) => s.logout)
-  const metaReady = useFacebookSdk(META_APP_ID)
+  const showMetaLogin = isMetaAuthConfigured && !isProductionHost()
+  const metaReady = useFacebookSdk(showMetaLogin ? META_APP_ID : '')
 
   function handleGoogleSuccess(response: CredentialResponse) {
     if (!response.credential) return
@@ -86,7 +91,7 @@ export function AuthPanel() {
     )
   }
 
-  const hasAnyProvider = isGoogleAuthConfigured || isMetaAuthConfigured
+  const hasAnyProvider = isGoogleAuthConfigured || showMetaLogin
 
   return (
     <div className="auth-panel">
@@ -102,7 +107,7 @@ export function AuthPanel() {
         />
       )}
 
-      {isMetaAuthConfigured && (
+      {showMetaLogin && (
         <button
           type="button"
           className="auth-panel__meta"
