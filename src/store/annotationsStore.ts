@@ -28,21 +28,8 @@ function revealDistricts(keys: string[], existing: string[]): string[] {
   return [...new Set([...existing, ...keys])]
 }
 
-function recomputeRevealedDistricts(
-  points: MapPoint[],
-  routes: MapRoute[],
-  userId: string,
-): string[] {
-  const keys = new Set<string>()
-  for (const point of points) {
-    if (point.userId === userId) keys.add(point.districtKey)
-  }
-  for (const route of routes) {
-    if (route.userId === userId) {
-      for (const key of route.districtKeys) keys.add(key)
-    }
-  }
-  return [...keys]
+function recomputeRevealedDistricts(points: MapPoint[], userId: string): string[] {
+  return [...new Set(points.filter((p) => p.userId === userId).map((p) => p.districtKey))]
 }
 
 export const useAnnotationsStore = create<AnnotationsState>()(
@@ -96,7 +83,6 @@ export const useAnnotationsStore = create<AnnotationsState>()(
           routes: [...state.routes, route],
           routeDraft: null,
           annotationMode: 'none',
-          revealedDistrictKeys: revealDistricts(route.districtKeys, state.revealedDistrictKeys),
         }))
       },
 
@@ -117,7 +103,7 @@ export const useAnnotationsStore = create<AnnotationsState>()(
             routes,
             routeDraft: null,
             annotationMode: 'none',
-            revealedDistrictKeys: recomputeRevealedDistricts(points, routes, userId),
+            revealedDistrictKeys: recomputeRevealedDistricts(points, userId),
           }
         }),
 

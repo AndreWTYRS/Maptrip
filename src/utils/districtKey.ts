@@ -20,5 +20,5 @@ export function districtKeysForCoords(coords: Array<{ lat: number; lon: number }
   return [...new Set(coords.map(({ lat, lon }) => districtKey(lat, lon)))]
 }
 
-/** Approximate district fill radius in meters */
-export const DISTRICT_FILL_RADIUS_M = 1200
+/** Matches ~district zoom viewport at 800 m camera height */
+export const DISTRICT_FILL_RADIUS_M = 750

@@ -21,7 +21,8 @@ export function MapHud() {
   const centerLon = useGlobeStore((s) => s.centerLon)
   const isInputRevealed = useRevealStore((s) => s.isRevealed)
   const resetReveal = useRevealStore((s) => s.reset)
-  const revealedDistrictKeys = useAnnotationsStore((s) => s.revealedDistrictKeys)
+  const points = useAnnotationsStore((s) => s.points)
+  const revealedDistrictKeys = points.map((p) => p.districtKey)
 
   const providerName = getMapProvider(providerId).name
   const countryName = countryNameEn(countryCode)

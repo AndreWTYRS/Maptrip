@@ -13,8 +13,8 @@ export function GlobeStage({ children }: GlobeStageProps) {
   const centerLat = useGlobeStore((s) => s.centerLat)
   const centerLon = useGlobeStore((s) => s.centerLon)
   const isInputRevealed = useRevealStore((s) => s.isRevealed)
-  const revealedDistrictKeys = useAnnotationsStore((s) => s.revealedDistrictKeys)
-  const revealedDistricts = new Set(revealedDistrictKeys)
+  const points = useAnnotationsStore((s) => s.points)
+  const revealedDistricts = new Set(points.map((p) => p.districtKey))
   const scheme = resolveMapColorScheme(
     zoomLevel,
     isInputRevealed,

@@ -21,7 +21,7 @@ import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
-import { DISTRICT_FILL_RADIUS_M, districtCenter } from '../utils/districtKey'
+import { DISTRICT_FILL_RADIUS_M } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
@@ -63,7 +63,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const points = useAnnotationsStore((s) => s.points)
   const routes = useAnnotationsStore((s) => s.routes)
   const routeDraft = useAnnotationsStore((s) => s.routeDraft)
-  const revealedDistrictKeys = useAnnotationsStore((s) => s.revealedDistrictKeys)
   const annotationMode = useAnnotationsStore((s) => s.annotationMode)
   const addPoint = useAnnotationsStore((s) => s.addPoint)
   const addRouteWaypoint = useAnnotationsStore((s) => s.addRouteWaypoint)
@@ -247,11 +246,10 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     const fillColor = Color.fromCssColorString('#638cff').withAlpha(0.38)
     const outlineColor = Color.fromCssColorString('#9eb6ff').withAlpha(0.65)
 
-    for (const key of revealedDistrictKeys) {
-      const { lat, lon } = districtCenter(key)
+    for (const point of points.filter((p) => !userId || p.userId === userId)) {
       viewer.entities.add({
-        id: `ann-district-${key}`,
-        position: Cartesian3.fromDegrees(lon, lat),
+        id: `ann-district-${point.id}`,
+        position: Cartesian3.fromDegrees(point.lon, point.lat),
         ellipse: {
           semiMajorAxis: DISTRICT_FILL_RADIUS_M,
           semiMinorAxis: DISTRICT_FILL_RADIUS_M,
@@ -330,7 +328,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
     }
-  }, [viewerReady, user, points, routes, routeDraft, revealedDistrictKeys])
+  }, [viewerReady, user, points, routes, routeDraft])
 
   useEffect(() => {
     const viewer = viewerRef.current
