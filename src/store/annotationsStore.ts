@@ -16,6 +16,7 @@ interface AnnotationsState {
   annotationMode: AnnotationMode
   routeDraft: RouteDraftPoint[] | null
   addPoint: (userId: string, lat: number, lon: number) => void
+  removePoint: (userId: string, pointId: string) => void
   addRouteWaypoint: (lat: number, lon: number) => void
   finishRoute: (userId: string) => void
   cancelRouteDraft: () => void
@@ -28,8 +29,8 @@ function revealDistricts(keys: string[], existing: string[]): string[] {
   return [...new Set([...existing, ...keys])]
 }
 
-function recomputeRevealedDistricts(points: MapPoint[], userId: string): string[] {
-  return [...new Set(points.filter((p) => p.userId === userId).map((p) => p.districtKey))]
+function recomputeAllRevealedDistricts(points: MapPoint[]): string[] {
+  return [...new Set(points.map((p) => p.districtKey))]
 }
 
 export const useAnnotationsStore = create<AnnotationsState>()(
@@ -58,6 +59,18 @@ export const useAnnotationsStore = create<AnnotationsState>()(
           annotationMode: 'none',
         }))
       },
+
+      removePoint: (userId, pointId) =>
+        set((state) => {
+          const point = state.points.find((p) => p.id === pointId && p.userId === userId)
+          if (!point) return state
+
+          const points = state.points.filter((p) => p.id !== pointId)
+          return {
+            points,
+            revealedDistrictKeys: recomputeAllRevealedDistricts(points),
+          }
+        }),
 
       addRouteWaypoint: (lat, lon) => {
         const waypoint: RouteDraftPoint = { lat, lon, districtKey: districtKey(lat, lon) }
@@ -103,7 +116,7 @@ export const useAnnotationsStore = create<AnnotationsState>()(
             routes,
             routeDraft: null,
             annotationMode: 'none',
-            revealedDistrictKeys: recomputeRevealedDistricts(points, userId),
+            revealedDistrictKeys: recomputeAllRevealedDistricts(points),
           }
         }),
 

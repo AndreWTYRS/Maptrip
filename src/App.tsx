@@ -1,6 +1,7 @@
 import { GlobeViewer } from './components/GlobeViewer'
 import { GlobeStage } from './components/GlobeStage'
 import { LocationTreeSidebar } from './components/LocationTreeSidebar'
+import { MarksListSidebar } from './components/MarksListSidebar'
 import { MapAnnotationToolbar } from './components/MapAnnotationToolbar'
 import { MapHud } from './components/MapHud'
 import { ZoomLevelControls } from './components/ZoomLevelControls'
@@ -17,6 +18,7 @@ function App() {
           <MapAnnotationToolbar />
           <ZoomLevelControls />
         </GlobeStage>
+        <MarksListSidebar />
       </div>
     </div>
   )
