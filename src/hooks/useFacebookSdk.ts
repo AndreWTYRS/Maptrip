@@ -33,7 +33,7 @@ export function useFacebookSdk(appId: string): boolean {
 
     const script = document.createElement('script')
     script.id = 'facebook-jssdk'
-    script.src = 'https://connect.facebook.net/ru_RU/sdk.js'
+    script.src = 'https://connect.facebook.net/en_US/sdk.js'
     script.async = true
     script.defer = true
     document.body.appendChild(script)

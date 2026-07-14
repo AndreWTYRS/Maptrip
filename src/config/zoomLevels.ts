@@ -8,10 +8,10 @@ export interface ZoomLevelConfig {
 }
 
 export const ZOOM_LEVELS: ZoomLevelConfig[] = [
-  { id: 'world', label: 'Мир', altitudeMeters: 15_000_000 },
-  { id: 'country', label: 'Страна', altitudeMeters: 600_000 },
-  { id: 'city', label: 'Город', altitudeMeters: 15_000 },
-  { id: 'district', label: 'Район', altitudeMeters: 800 },
+  { id: 'world', label: 'World', altitudeMeters: 15_000_000 },
+  { id: 'country', label: 'Country', altitudeMeters: 600_000 },
+  { id: 'city', label: 'City', altitudeMeters: 15_000 },
+  { id: 'district', label: 'District', altitudeMeters: 800 },
 ]
 
 export const ZOOM_LEVEL_BY_ID = Object.fromEntries(

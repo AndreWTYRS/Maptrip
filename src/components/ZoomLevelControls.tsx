@@ -6,7 +6,7 @@ export function ZoomLevelControls() {
   const requestFlyToLevel = useGlobeStore((s) => s.requestFlyToLevel)
 
   return (
-    <div className="zoom-controls" role="toolbar" aria-label="Уровень масштаба">
+    <div className="zoom-controls" role="toolbar" aria-label="Zoom level">
       {ZOOM_LEVELS.map((level) => (
         <button
           key={level.id}

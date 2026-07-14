@@ -1,90 +1,93 @@
 # MapTrip — 3D Globe
 
-Интерактивный 3D-глобус с размытой картой, зумом до уровня района и сменой провайдера карт по стране.
+Interactive 3D globe with grayscale map coloring, neighborhood-level zoom, and country-based map provider switching.
 
 **Live demo:** https://andrewtyrs.github.io/Maptrip/
 
-> Если ссылка отдаёт 404 — один раз включите Pages:  
+> If the link returns 404, enable Pages once:  
 > **Settings → Pages → Build and deployment → Source: Deploy from branch → `gh-pages` / `/ (root)`**  
-> После этого сайт появится через 1–2 минуты.
+> The site should appear within 1–2 minutes.
 
-## Возможности
+## Features
 
-- **3D-глобус** — вращение, pinch/scroll zoom, приближение до ~30 м (уровень района)
-- **Blur по умолчанию** — карта скрыта, раскрывается после действий пользователя
-- **Google Maps** — основной провайдер (через Map Tiles API)
-- **Смена провайдера по стране** — например, Yandex для RU/BY/KZ (настраивается в `src/config/countryProviders.ts`)
-- **Уровни зума** — кнопки «Страна / Город / Район» с плавным перелётом камеры
-- **OAuth** — вход через Google и Meta (Facebook)
+- **3D globe** — rotate, pinch/scroll zoom, down to ~30 m (district level)
+- **Grayscale map** — full color at world zoom; country/city/district use gray tones until user input
+- **Google Maps** — default provider (via Map Tiles API)
+- **Country-based providers** — e.g. Yandex for RU/BY/KZ (configure in `src/config/countryProviders.ts`)
+- **Zoom levels** — World / Country / City / District buttons with smooth camera fly-to
+- **OAuth** — sign in with Google (Meta available on localhost only)
 
-## Быстрый старт
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Откройте http://localhost:5173
+Open http://localhost:5173
 
-## Переменные окружения
+## Environment variables
 
-Скопируйте `.env.example` в `.env`:
+Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Переменная | Описание |
+| Variable | Description |
 |---|---|
-| `VITE_GOOGLE_MAPS_API_KEY` | API-ключ Google Maps Platform |
-| `VITE_GOOGLE_MAPS_SESSION_TOKEN` | Session token из [Map Tiles API](https://developers.google.com/maps/documentation/tile/session_tokens) |
-| `VITE_YANDEX_MAPS_API_KEY` | API-ключ Yandex Maps (для RU/CIS) |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps Platform API key |
+| `VITE_GOOGLE_MAPS_SESSION_TOKEN` | Session token from [Map Tiles API](https://developers.google.com/maps/documentation/tile/session_tokens) |
+| `VITE_YANDEX_MAPS_API_KEY` | Yandex Maps API key (RU/CIS) |
 | `VITE_CESIUM_ION_TOKEN` | [Cesium Ion](https://ion.cesium.com/) token (terrain + fallback imagery) |
-| `VITE_GOOGLE_OAUTH_CLIENT_ID` | OAuth 2.0 Client ID для Google Sign-In |
-| `VITE_META_APP_ID` | App ID для Meta (Facebook) Login |
+| `VITE_GOOGLE_OAUTH_CLIENT_ID` | OAuth 2.0 Client ID for Google Sign-In |
+| `VITE_META_APP_ID` | App ID for Meta (Facebook) Login |
 
-Без Google credentials используется спутниковая подложка Cesium Ion. Без Ion token terrain может не загрузиться.
+Without Google credentials, OpenStreetMap is used as fallback. Without an Ion token, terrain may not load.
 
 ### OAuth
 
-**Google:** создайте OAuth Client ID (Web application) в [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Добавьте origins:
+**Google:** create an OAuth Client ID (Web application) in [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Add origins:
 - `http://localhost:5173`
 - `https://andrewtyrs.github.io`
 
-**Meta:** создайте приложение в [Meta for Developers](https://developers.facebook.com/), включите Facebook Login, добавьте `localhost` и `andrewtyrs.github.io` в Valid OAuth Redirect URIs.
+**Meta:** create an app in [Meta for Developers](https://developers.facebook.com/), enable Facebook Login, add `localhost` and `andrewtyrs.github.io` to Valid OAuth Redirect URIs.
 
-## Уровни зума
+Add secrets in GitHub Actions: **Settings → Secrets and variables → Actions** → `VITE_GOOGLE_OAUTH_CLIENT_ID`, `VITE_META_APP_ID`.
 
-Кнопки внизу экрана переключают камеру на фиксированные высоты:
+## Zoom levels
 
-| Уровень | Высота камеры |
+Bottom toolbar switches the camera to fixed altitudes:
+
+| Level | Camera height |
 |---|---|
-| Страна | ~600 км |
-| Город | ~15 км |
-| Район | ~800 м |
+| World | ~15,000 km |
+| Country | ~600 km |
+| City | ~15 km |
+| District | ~800 m |
 
-Настройка в `src/config/zoomLevels.ts`. При ручном зуме активная кнопка обновляется автоматически.
+Configure in `src/config/zoomLevels.ts`. The active button updates automatically when zooming manually.
 
-## Настройка действий для раскрытия карты
+## User input for color reveal
 
-Файл `src/config/revealActions.ts`:
+File `src/config/revealActions.ts`:
 
 ```ts
 export const REVEAL_CONFIG = {
-  requiredActions: ['globe_rotate'],
+  requiredActions: [],
   mode: 'any',
 }
 ```
 
-Встроенные action id:
+Built-in action ids:
 
-- `globe_rotate` — поворот глобуса
-- `globe_zoom` — изменение масштаба
-- `globe_tap` — клик/тап по карте
+- `globe_rotate` — rotate the globe
+- `globe_zoom` — change zoom level
+- `globe_tap` — click/tap the map
 
-## Смена провайдера по стране
+## Country-based map providers
 
-Файл `src/config/countryProviders.ts`:
+File `src/config/countryProviders.ts`:
 
 ```ts
 export const COUNTRY_PROVIDER_MAP = {
@@ -94,10 +97,10 @@ export const COUNTRY_PROVIDER_MAP = {
 }
 ```
 
-Добавьте новый провайдер в `src/providers/` и зарегистрируйте в `src/providers/registry.ts`.
+Add a new provider in `src/providers/` and register it in `src/providers/registry.ts`.
 
-## Стек
+## Stack
 
 - React 19 + TypeScript + Vite
 - [CesiumJS](https://cesium.com/platform/cesiumjs/) — 3D globe & terrain
-- Zustand — состояние blur и провайдера
+- Zustand — map color and provider state

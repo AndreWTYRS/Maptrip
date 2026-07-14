@@ -85,7 +85,7 @@ export function AuthPanel() {
           </span>
         </div>
         <button type="button" className="auth-panel__logout" onClick={handleLogout}>
-          Выйти
+          Sign out
         </button>
       </div>
     )
@@ -119,7 +119,7 @@ export function AuthPanel() {
       )}
 
       {!hasAnyProvider && (
-        <span className="auth-panel__hint">OAuth не настроен</span>
+        <span className="auth-panel__hint">OAuth not configured</span>
       )}
     </div>
   )

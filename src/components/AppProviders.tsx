@@ -8,7 +8,7 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
   if (isGoogleAuthConfigured) {
-    return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} locale="ru">{children}</GoogleOAuthProvider>
+    return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} locale="en">{children}</GoogleOAuthProvider>
   }
 
   return children

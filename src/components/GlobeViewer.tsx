@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   CameraEventType,
+  Cartesian2,
   Cartesian3,
+  Cartographic,
+  Color,
   Ion,
+  LabelStyle,
   Math as CesiumMath,
+  VerticalOrigin,
   ScreenSpaceEventType,
   Terrain,
   Viewer,
@@ -11,9 +16,12 @@ import {
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { resolveProviderForCountry } from '../config/countryProviders'
 import { getMapProvider } from '../providers/registry'
+import { useAnnotationsStore } from '../store/annotationsStore'
+import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
+import { DISTRICT_FILL_RADIUS_M, districtCenter } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
@@ -24,9 +32,23 @@ interface GlobeViewerProps {
   className?: string
 }
 
+function pickCoords(viewer: Viewer, position: Cartesian2) {
+  const cartesian = viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid)
+  if (!cartesian) return null
+
+  const cartographic = Cartographic.fromCartesian(cartesian)
+  return {
+    lat: CesiumMath.toDegrees(cartographic.latitude),
+    lon: CesiumMath.toDegrees(cartographic.longitude),
+  }
+}
+
 export function GlobeViewer({ className }: GlobeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<Viewer | null>(null)
+  const [viewerReady, setViewerReady] = useState(false)
+
+  const user = useAuthStore((s) => s.user)
   const recordAction = useRevealStore((s) => s.recordAction)
   const setProviderId = useGlobeStore((s) => s.setProviderId)
   const setCountryCode = useGlobeStore((s) => s.setCountryCode)
@@ -37,6 +59,14 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const clearFlyToRequest = useGlobeStore((s) => s.clearFlyToRequest)
   const centerLat = useGlobeStore((s) => s.centerLat)
   const centerLon = useGlobeStore((s) => s.centerLon)
+
+  const points = useAnnotationsStore((s) => s.points)
+  const routes = useAnnotationsStore((s) => s.routes)
+  const routeDraft = useAnnotationsStore((s) => s.routeDraft)
+  const revealedDistrictKeys = useAnnotationsStore((s) => s.revealedDistrictKeys)
+  const annotationMode = useAnnotationsStore((s) => s.annotationMode)
+  const addPoint = useAnnotationsStore((s) => s.addPoint)
+  const addRouteWaypoint = useAnnotationsStore((s) => s.addRouteWaypoint)
 
   useEffect(() => {
     const container = containerRef.current
@@ -60,6 +90,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     })
 
     viewerRef.current = viewer
+    setViewerReady(true)
     viewer.scene.globe.enableLighting = true
     viewer.scene.fog.enabled = true
 
@@ -125,9 +156,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       CesiumMath.toDegrees(initialCarto.longitude),
     )
 
-    const handler = viewer.screenSpaceEventHandler
-    handler.setInputAction(() => recordAction('globe_tap'), ScreenSpaceEventType.LEFT_CLICK)
-
     const removeMoveEnd = viewer.camera.moveEnd.addEventListener(() => {
       const carto = viewer.camera.positionCartographic
       const lat = CesiumMath.toDegrees(carto.latitude)
@@ -155,6 +183,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       removeMoveEnd()
       viewer.destroy()
       viewerRef.current = null
+      setViewerReady(false)
     }
   }, [
     recordAction,
@@ -164,6 +193,144 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     setProviderId,
     setZoomLevel,
   ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !viewerReady) return
+
+    const handler = viewer.screenSpaceEventHandler
+
+    const onClick = (movement: { position: Cartesian2 }) => {
+      recordAction('globe_tap')
+
+      if (!user) return
+
+      const coords = pickCoords(viewer, movement.position)
+      if (!coords) return
+
+      if (annotationMode === 'point') {
+        addPoint(user.id, coords.lat, coords.lon)
+        return
+      }
+
+      if (annotationMode === 'route') {
+        addRouteWaypoint(coords.lat, coords.lon)
+      }
+    }
+
+    handler.setInputAction(onClick, ScreenSpaceEventType.LEFT_CLICK)
+
+    return () => {
+      handler.removeInputAction(ScreenSpaceEventType.LEFT_CLICK)
+    }
+  }, [
+    viewerReady,
+    user,
+    annotationMode,
+    addPoint,
+    addRouteWaypoint,
+    recordAction,
+  ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !viewerReady) return
+
+    const stale = viewer.entities.values.filter(
+      (entity) => typeof entity.id === 'string' && entity.id.startsWith('ann-'),
+    )
+    for (const entity of stale) {
+      viewer.entities.remove(entity)
+    }
+
+    const userId = user?.id
+    const fillColor = Color.fromCssColorString('#638cff').withAlpha(0.38)
+    const outlineColor = Color.fromCssColorString('#9eb6ff').withAlpha(0.65)
+
+    for (const key of revealedDistrictKeys) {
+      const { lat, lon } = districtCenter(key)
+      viewer.entities.add({
+        id: `ann-district-${key}`,
+        position: Cartesian3.fromDegrees(lon, lat),
+        ellipse: {
+          semiMajorAxis: DISTRICT_FILL_RADIUS_M,
+          semiMinorAxis: DISTRICT_FILL_RADIUS_M,
+          material: fillColor,
+          outline: true,
+          outlineColor,
+          outlineWidth: 2,
+          height: 0,
+        },
+      })
+    }
+
+    if (userId) {
+      for (const point of points.filter((p) => p.userId === userId)) {
+        viewer.entities.add({
+          id: `ann-point-${point.id}`,
+          position: Cartesian3.fromDegrees(point.lon, point.lat),
+          point: {
+            pixelSize: 11,
+            color: Color.WHITE,
+            outlineColor: Color.fromCssColorString('#638cff'),
+            outlineWidth: 2,
+          },
+          label: {
+            text: point.label,
+            font: '13px sans-serif',
+            fillColor: Color.WHITE,
+            outlineColor: Color.BLACK,
+            outlineWidth: 2,
+            style: LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: VerticalOrigin.BOTTOM,
+            pixelOffset: new Cartesian2(0, -18),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        })
+      }
+
+      for (const route of routes.filter((r) => r.userId === userId)) {
+        viewer.entities.add({
+          id: `ann-route-${route.id}`,
+          polyline: {
+            positions: Cartesian3.fromDegreesArray(
+              route.points.flatMap((p) => [p.lon, p.lat]),
+            ),
+            width: 4,
+            material: Color.fromCssColorString('#ffd166'),
+            clampToGround: true,
+          },
+        })
+      }
+
+      if (routeDraft && routeDraft.length > 0) {
+        viewer.entities.add({
+          id: 'ann-draft-polyline',
+          polyline: {
+            positions: Cartesian3.fromDegreesArray(
+              routeDraft.flatMap((p) => [p.lon, p.lat]),
+            ),
+            width: 3,
+            material: Color.fromCssColorString('#ffd166').withAlpha(0.7),
+            clampToGround: true,
+          },
+        })
+
+        for (const [index, waypoint] of routeDraft.entries()) {
+          viewer.entities.add({
+            id: `ann-draft-point-${index}`,
+            position: Cartesian3.fromDegrees(waypoint.lon, waypoint.lat),
+            point: {
+              pixelSize: 9,
+              color: Color.fromCssColorString('#ffd166'),
+              outlineColor: Color.WHITE,
+              outlineWidth: 1,
+            },
+          })
+        }
+      }
+    }
+  }, [viewerReady, user, points, routes, routeDraft, revealedDistrictKeys])
 
   useEffect(() => {
     const viewer = viewerRef.current
