@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import {
+  CameraEventType,
   Cartesian3,
   Ion,
   Math as CesiumMath,
@@ -66,6 +67,13 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     controller.minimumZoomDistance = MIN_ZOOM_DISTANCE
     controller.maximumZoomDistance = MAX_ZOOM_DISTANCE
     controller.enableCollisionDetection = true
+    controller.enableZoom = true
+    controller.zoomEventTypes = [CameraEventType.WHEEL, CameraEventType.PINCH]
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault()
+    }
+    container.addEventListener('wheel', onWheel, { passive: false })
 
     viewer.camera.setView({
       destination: Cartesian3.fromDegrees(37.6173, 55.7558, INITIAL_ALTITUDE),
@@ -143,6 +151,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     })
 
     return () => {
+      container.removeEventListener('wheel', onWheel)
       removeMoveEnd()
       viewer.destroy()
       viewerRef.current = null
