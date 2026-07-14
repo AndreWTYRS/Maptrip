@@ -55,7 +55,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       fullscreenButton: false,
       infoBox: false,
       selectionIndicator: false,
-      terrain: Terrain.fromWorldTerrain(),
+      ...(ionToken ? { terrain: Terrain.fromWorldTerrain() } : {}),
     })
 
     viewerRef.current = viewer

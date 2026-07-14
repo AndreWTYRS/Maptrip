@@ -1,8 +1,8 @@
 import {
-  IonImageryProvider,
   UrlTemplateImageryProvider,
   WebMercatorTilingScheme,
 } from 'cesium'
+import { createOsmProvider } from './openstreetmap'
 import type { MapProvider, MapProviderContext } from './types'
 
 /**
@@ -10,7 +10,7 @@ import type { MapProvider, MapProviderContext } from './types'
  * Requires VITE_GOOGLE_MAPS_API_KEY and a session token from your backend
  * (CreateSession: https://developers.google.com/maps/documentation/tile/session_tokens).
  *
- * Without credentials, falls back to Cesium Ion satellite imagery.
+ * Without credentials, falls back to OpenStreetMap.
  */
 export function createGoogleProvider(context: MapProviderContext = {}): MapProvider {
   return {
@@ -29,7 +29,7 @@ export function createGoogleProvider(context: MapProviderContext = {}): MapProvi
         })
       }
 
-      return IonImageryProvider.fromAssetId(2)
+      return createOsmProvider().createImageryProvider()
     },
   }
 }
