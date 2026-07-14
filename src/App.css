@@ -6,10 +6,129 @@
   flex-direction: column;
 }
 
+.app__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.location-tree {
+  z-index: 20;
+  flex: 0 0 16rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: rgba(8, 12, 24, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.location-tree__title {
+  margin: 0;
+  padding: 0.875rem 1rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(232, 237, 247, 0.55);
+}
+
+.location-tree__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.location-tree__list--root {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 0.75rem;
+}
+
+.location-tree__row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+}
+
+.location-tree__toggle {
+  flex: 0 0 1.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(232, 237, 247, 0.55);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.location-tree__toggle--spacer {
+  display: inline-block;
+}
+
+.location-tree__label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  border: none;
+  background: transparent;
+  color: rgba(232, 237, 247, 0.88);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-tree__label:hover {
+  color: #fff;
+}
+
+.location-tree__label--selected {
+  color: #b8ccff;
+}
+
+.location-tree__type {
+  flex: 0 0 auto;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(232, 237, 247, 0.55);
+}
+
+.location-tree__type--country {
+  background: rgba(99, 140, 255, 0.2);
+  color: #b8ccff;
+}
+
+.location-tree__type--city {
+  background: rgba(72, 199, 142, 0.15);
+  color: #8ef0c0;
+}
+
+.location-tree__type--district {
+  background: rgba(255, 209, 102, 0.15);
+  color: #ffd166;
+}
+
+.location-tree__revealed {
+  flex: 0 0 0.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #638cff;
+}
+
 .globe-stage {
   position: relative;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .globe-viewer {

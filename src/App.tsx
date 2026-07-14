@@ -1,5 +1,6 @@
 import { GlobeViewer } from './components/GlobeViewer'
 import { GlobeStage } from './components/GlobeStage'
+import { LocationTreeSidebar } from './components/LocationTreeSidebar'
 import { MapAnnotationToolbar } from './components/MapAnnotationToolbar'
 import { MapHud } from './components/MapHud'
 import { ZoomLevelControls } from './components/ZoomLevelControls'
@@ -9,11 +10,14 @@ function App() {
   return (
     <div className="app">
       <MapHud />
-      <GlobeStage>
-        <GlobeViewer className="globe-viewer" />
-        <MapAnnotationToolbar />
-        <ZoomLevelControls />
-      </GlobeStage>
+      <div className="app__body">
+        <LocationTreeSidebar />
+        <GlobeStage>
+          <GlobeViewer className="globe-viewer" />
+          <MapAnnotationToolbar />
+          <ZoomLevelControls />
+        </GlobeStage>
+      </div>
     </div>
   )
 }

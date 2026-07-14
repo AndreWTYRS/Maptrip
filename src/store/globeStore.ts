@@ -7,6 +7,13 @@ interface FlyToLevelRequest {
   token: number
 }
 
+interface FlyToLocationRequest {
+  lat: number
+  lon: number
+  level: ZoomLevel
+  token: number
+}
+
 interface GlobeState {
   providerId: MapProviderId
   countryCode: string | null
@@ -14,13 +21,17 @@ interface GlobeState {
   centerLat: number
   centerLon: number
   zoomLevel: ZoomLevel
+  selectedLocationId: string | null
   flyToLevelRequest: FlyToLevelRequest | null
+  flyToLocationRequest: FlyToLocationRequest | null
   setProviderId: (id: MapProviderId) => void
   setCountryCode: (code: string | null) => void
   setAltitudeMeters: (altitude: number) => void
   setCenter: (lat: number, lon: number) => void
   setZoomLevel: (level: ZoomLevel) => void
+  setSelectedLocationId: (id: string | null) => void
   requestFlyToLevel: (level: ZoomLevel) => void
+  requestFlyToLocation: (lat: number, lon: number, level: ZoomLevel) => void
   clearFlyToRequest: () => void
 }
 
@@ -33,13 +44,23 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   centerLat: 55.7558,
   centerLon: 37.6173,
   zoomLevel: 'world',
+  selectedLocationId: null,
   flyToLevelRequest: null,
+  flyToLocationRequest: null,
   setProviderId: (providerId) => set({ providerId }),
   setCountryCode: (countryCode) => set({ countryCode }),
   setAltitudeMeters: (altitudeMeters) => set({ altitudeMeters }),
   setCenter: (centerLat, centerLon) => set({ centerLat, centerLon }),
   setZoomLevel: (zoomLevel) => set({ zoomLevel }),
+  setSelectedLocationId: (selectedLocationId) => set({ selectedLocationId }),
   requestFlyToLevel: (level) =>
     set({ flyToLevelRequest: { level, token: ++flyToToken } }),
-  clearFlyToRequest: () => set({ flyToLevelRequest: null }),
+  requestFlyToLocation: (lat, lon, level) =>
+    set({
+      centerLat: lat,
+      centerLon: lon,
+      flyToLocationRequest: { lat, lon, level, token: ++flyToToken },
+    }),
+  clearFlyToRequest: () =>
+    set({ flyToLevelRequest: null, flyToLocationRequest: null }),
 }))

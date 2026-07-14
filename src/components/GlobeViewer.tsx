@@ -56,6 +56,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const setCenter = useGlobeStore((s) => s.setCenter)
   const setZoomLevel = useGlobeStore((s) => s.setZoomLevel)
   const flyToLevelRequest = useGlobeStore((s) => s.flyToLevelRequest)
+  const flyToLocationRequest = useGlobeStore((s) => s.flyToLocationRequest)
   const clearFlyToRequest = useGlobeStore((s) => s.clearFlyToRequest)
   const centerLat = useGlobeStore((s) => s.centerLat)
   const centerLon = useGlobeStore((s) => s.centerLon)
@@ -332,28 +333,33 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
   useEffect(() => {
     const viewer = viewerRef.current
-    if (!viewer || !flyToLevelRequest) return
+    if (!viewer) return
 
-    const { level } = flyToLevelRequest
-    const altitude = getAltitudeForLevel(level)
+    const target = flyToLocationRequest ?? (flyToLevelRequest ? { lat: centerLat, lon: centerLon, level: flyToLevelRequest.level } : null)
+    if (!target) return
 
-    setZoomLevel(level)
+    const altitude = getAltitudeForLevel(target.level)
+
+    setCenter(target.lat, target.lon)
+    setZoomLevel(target.level)
     setAltitudeMeters(altitude)
     recordAction('globe_zoom')
 
     viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(centerLon, centerLat, altitude),
+      destination: Cartesian3.fromDegrees(target.lon, target.lat, altitude),
       duration: 1.4,
       complete: () => clearFlyToRequest(),
       cancel: () => clearFlyToRequest(),
     })
   }, [
     flyToLevelRequest,
+    flyToLocationRequest,
     centerLat,
     centerLon,
     clearFlyToRequest,
     recordAction,
     setAltitudeMeters,
+    setCenter,
     setZoomLevel,
   ])
 
