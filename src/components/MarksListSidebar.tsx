@@ -85,8 +85,8 @@ export function MarksListSidebar() {
   const removePoint = useAnnotationsStore((s) => s.removePoint)
   const requestFlyToLocation = useGlobeStore((s) => s.requestFlyToLocation)
 
-  const [selectedCountry, setSelectedCountry] = useState<PointCountryGroup | null>(null)
-  const [selectedCity, setSelectedCity] = useState<PointCityGroup | null>(null)
+  const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null)
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -97,6 +97,16 @@ export function MarksListSidebar() {
 
   const countryGroups = useMemo(() => groupPointsByLocation(userPoints), [userPoints])
   const searchEntries = useMemo(() => collectPointSearchEntries(countryGroups), [countryGroups])
+
+  const activeCountry = useMemo(
+    () => countryGroups.find((group) => group.id === selectedCountryId) ?? null,
+    [countryGroups, selectedCountryId],
+  )
+
+  const activeCity = useMemo(
+    () => activeCountry?.cities.find((city) => city.id === selectedCityId) ?? null,
+    [activeCountry, selectedCityId],
+  )
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const isSearching = normalizedQuery.length > 0
@@ -112,21 +122,21 @@ export function MarksListSidebar() {
 
   const sectionTitle = isSearching
     ? 'Search results'
-    : selectedCity
+    : activeCity
       ? 'Points'
-      : selectedCountry
+      : activeCountry
         ? 'Cities'
         : 'Countries'
 
   function handleSelectCountry(country: PointCountryGroup) {
-    setSelectedCountry(country)
-    setSelectedCity(null)
+    setSelectedCountryId(country.id)
+    setSelectedCityId(null)
     setSelectedPointId(null)
     requestFlyToLocation(country.lat, country.lon, 'country')
   }
 
   function handleSelectCity(city: PointCityGroup) {
-    setSelectedCity(city)
+    setSelectedCityId(city.id)
     setSelectedPointId(null)
     requestFlyToLocation(city.lat, city.lon, 'city')
   }
@@ -143,27 +153,25 @@ export function MarksListSidebar() {
   }
 
   function handleSearchSelect(entry: (typeof searchEntries)[number]) {
-    const country = countryGroups.find((group) => group.id === entry.countryId) ?? null
-    const city = country?.cities.find((group) => group.id === entry.cityId) ?? null
-    if (country) setSelectedCountry(country)
-    if (city) setSelectedCity(city)
+    setSelectedCountryId(entry.countryId)
+    setSelectedCityId(entry.cityId)
     handleSelectPoint(entry.point)
     setSearchQuery('')
   }
 
   function handleBack() {
-    if (selectedCity) {
-      setSelectedCity(null)
+    if (selectedCityId) {
+      setSelectedCityId(null)
       setSelectedPointId(null)
       return
     }
-    if (selectedCountry) {
-      setSelectedCountry(null)
+    if (selectedCountryId) {
+      setSelectedCountryId(null)
       setSelectedPointId(null)
     }
   }
 
-  const showBack = !isSearching && (selectedCountry !== null || selectedCity !== null)
+  const showBack = !isSearching && (selectedCountryId !== null || selectedCityId !== null)
 
   if (!user) {
     return (
@@ -214,7 +222,7 @@ export function MarksListSidebar() {
           ) : (
             <li className="location-tree__empty">No points found</li>
           ))}
-        {!isSearching && !selectedCountry &&
+        {!isSearching && !activeCountry &&
           countryGroups.map((country) => (
             <GroupItem
               key={country.id}
@@ -225,8 +233,8 @@ export function MarksListSidebar() {
               onSelect={() => handleSelectCountry(country)}
             />
           ))}
-        {!isSearching && selectedCountry && !selectedCity &&
-          selectedCountry.cities.map((city) => (
+        {!isSearching && activeCountry && !activeCity &&
+          activeCountry.cities.map((city) => (
             <GroupItem
               key={city.id}
               id={city.id}
@@ -236,8 +244,8 @@ export function MarksListSidebar() {
               onSelect={() => handleSelectCity(city)}
             />
           ))}
-        {!isSearching && selectedCity &&
-          selectedCity.points.map((point) => (
+        {!isSearching && activeCity &&
+          activeCity.points.map((point) => (
             <PointItem
               key={point.id}
               point={point}
@@ -246,6 +254,9 @@ export function MarksListSidebar() {
               onDelete={handleDeletePoint}
             />
           ))}
+        {!isSearching && activeCity && activeCity.points.length === 0 && (
+          <li className="location-tree__empty">No points in this city</li>
+        )}
       </ul>
     </aside>
   )
