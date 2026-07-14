@@ -1,0 +1,251 @@
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.globe-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.globe-viewer {
+  width: 100%;
+  height: 100%;
+}
+
+.map-hud {
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(8, 12, 24, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.map-hud__brand {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.map-hud__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: rgba(232, 237, 247, 0.75);
+}
+
+.map-hud__status {
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.map-hud__status--on {
+  background: rgba(72, 199, 142, 0.2);
+  color: #8ef0c0;
+}
+
+.map-hud__reset {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.map-hud__reset:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.zoom-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 15;
+  display: flex;
+  gap: 0.375rem;
+  padding: 0.375rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(8, 12, 24, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.zoom-controls__btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(232, 237, 247, 0.75);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.zoom-controls__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.zoom-controls__btn--active {
+  background: rgba(99, 140, 255, 0.25);
+  color: #b8ccff;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-panel--signed-in {
+  gap: 0.625rem;
+}
+
+.auth-panel__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.auth-panel__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.auth-panel__name {
+  font-weight: 600;
+  color: #e8edf7;
+}
+
+.auth-panel__provider {
+  color: rgba(232, 237, 247, 0.55);
+}
+
+.auth-panel__meta,
+.auth-panel__logout {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.auth-panel__meta {
+  background: #1877f2;
+  border-color: #1877f2;
+}
+
+.auth-panel__meta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-panel__meta:not(:disabled):hover {
+  background: #166fe0;
+}
+
+.auth-panel__logout:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-panel__hint {
+  font-size: 0.75rem;
+  color: rgba(232, 237, 247, 0.45);
+}
+
+.blur-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(11, 16, 32, 0.25);
+  backdrop-filter: blur(18px) saturate(120%);
+  transition:
+    backdrop-filter 0.8s ease,
+    background 0.8s ease,
+    opacity 0.8s ease;
+}
+
+.blur-overlay--revealed {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  background: transparent;
+}
+
+.blur-overlay__hint {
+  max-width: 22rem;
+  padding: 1.5rem;
+  text-align: center;
+  border-radius: 1rem;
+  background: rgba(8, 12, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.blur-overlay__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.blur-overlay__subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgba(232, 237, 247, 0.72);
+}
+
+.blur-overlay__actions {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.blur-overlay__action {
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 237, 247, 0.65);
+}
+
+.blur-overlay__action--done {
+  background: rgba(72, 199, 142, 0.15);
+  color: #8ef0c0;
+}
+
+.blur-overlay__mode {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: rgba(232, 237, 247, 0.5);
+}
+
+/* Hide default Cesium chrome we disabled in code */
+.cesium-viewer-bottom,
+.cesium-viewer-toolbar {
+  display: none !important;
+}
