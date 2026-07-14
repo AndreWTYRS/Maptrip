@@ -1,5 +1,5 @@
 import { GlobeViewer } from './components/GlobeViewer'
-import { BlurOverlay } from './components/BlurOverlay'
+import { GlobeStage } from './components/GlobeStage'
 import { MapHud } from './components/MapHud'
 import { ZoomLevelControls } from './components/ZoomLevelControls'
 import './App.css'
@@ -8,11 +8,10 @@ function App() {
   return (
     <div className="app">
       <MapHud />
-      <main className="globe-stage">
+      <GlobeStage>
         <GlobeViewer className="globe-viewer" />
-        <BlurOverlay />
         <ZoomLevelControls />
-      </main>
+      </GlobeStage>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { ZOOM_LEVEL_BY_ID } from '../config/zoomLevels'
+import { resolveMapColorScheme } from '../config/mapColors'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
 import { getMapProvider } from '../providers/registry'
@@ -14,11 +15,13 @@ export function MapHud() {
   const countryCode = useGlobeStore((s) => s.countryCode)
   const altitudeMeters = useGlobeStore((s) => s.altitudeMeters)
   const zoomLevel = useGlobeStore((s) => s.zoomLevel)
-  const isRevealed = useRevealStore((s) => s.isRevealed)
+  const isInputRevealed = useRevealStore((s) => s.isRevealed)
   const resetReveal = useRevealStore((s) => s.reset)
 
   const providerName = getMapProvider(providerId).name
   const zoomLabel = ZOOM_LEVEL_BY_ID[zoomLevel].label
+  const colorScheme = resolveMapColorScheme(zoomLevel, isInputRevealed)
+  const isColored = colorScheme === 'color'
 
   return (
     <header className="map-hud">
@@ -28,13 +31,13 @@ export function MapHud() {
         {countryCode && <span>{countryCode}</span>}
         <span>{zoomLabel}</span>
         <span>{formatAltitude(altitudeMeters)}</span>
-        <span className={isRevealed ? 'map-hud__status map-hud__status--on' : 'map-hud__status'}>
-          {isRevealed ? 'открыта' : 'скрыта'}
+        <span className={isColored ? 'map-hud__status map-hud__status--on' : 'map-hud__status'}>
+          {isColored ? 'цветная' : 'серая'}
         </span>
       </div>
       <AuthPanel />
       <button type="button" className="map-hud__reset" onClick={resetReveal}>
-        Сбросить blur
+        Сбросить цвет
       </button>
     </header>
   )

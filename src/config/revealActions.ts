@@ -1,6 +1,6 @@
 /**
- * Actions that unlock the map (remove blur).
- * Update `requiredActions` when you define the final user flow.
+ * User inputs that unlock full-color map below the world zoom level.
+ * Update `requiredActions` when the input flow is defined.
  *
  * Built-in action ids emitted by the globe:
  * - globe_rotate   — user rotated the globe
@@ -14,14 +14,14 @@ export type RevealActionId =
   | (string & {})
 
 export interface RevealConfig {
-  /** Actions required before the map is revealed */
+  /** User inputs required before color fill appears on country/city/district */
   requiredActions: RevealActionId[]
-  /** `any` — one action is enough; `all` — every action must fire */
+  /** `any` — one input is enough; `all` — every input must fire */
   mode: 'any' | 'all'
 }
 
-/** Placeholder config — replace requiredActions when the flow is defined */
+/** Placeholder — add requiredActions when the input flow is defined */
 export const REVEAL_CONFIG: RevealConfig = {
-  requiredActions: ['globe_rotate'],
+  requiredActions: [],
   mode: 'any',
 }

@@ -171,77 +171,27 @@
   color: rgba(232, 237, 247, 0.45);
 }
 
-.blur-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  background: rgba(11, 16, 32, 0.25);
-  backdrop-filter: blur(18px) saturate(120%);
-  transition:
-    backdrop-filter 0.8s ease,
-    background 0.8s ease,
-    opacity 0.8s ease;
+.globe-stage--gray-cool :is(.cesium-viewer, .cesium-widget) canvas,
+.globe-stage--gray-neutral :is(.cesium-viewer, .cesium-widget) canvas,
+.globe-stage--gray-warm :is(.cesium-viewer, .cesium-widget) canvas {
+  transition: filter 0.8s ease;
 }
 
-.blur-overlay--revealed {
-  opacity: 0;
-  backdrop-filter: blur(0px);
-  background: transparent;
+.globe-stage--gray-cool :is(.cesium-viewer, .cesium-widget) canvas {
+  filter: grayscale(1) saturate(0.35) brightness(0.9) hue-rotate(195deg);
 }
 
-.blur-overlay__hint {
-  max-width: 22rem;
-  padding: 1.5rem;
-  text-align: center;
-  border-radius: 1rem;
-  background: rgba(8, 12, 24, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+.globe-stage--gray-neutral :is(.cesium-viewer, .cesium-widget) canvas {
+  filter: grayscale(1) saturate(0.2) brightness(0.82);
 }
 
-.blur-overlay__title {
-  margin: 0 0 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+.globe-stage--gray-warm :is(.cesium-viewer, .cesium-widget) canvas {
+  filter: grayscale(1) sepia(0.35) saturate(0.45) brightness(0.88);
 }
 
-.blur-overlay__subtitle {
-  margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  color: rgba(232, 237, 247, 0.72);
-}
-
-.blur-overlay__actions {
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-}
-
-.blur-overlay__action {
-  padding: 0.375rem 0.625rem;
-  border-radius: 0.375rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(232, 237, 247, 0.65);
-}
-
-.blur-overlay__action--done {
-  background: rgba(72, 199, 142, 0.15);
-  color: #8ef0c0;
-}
-
-.blur-overlay__mode {
-  margin: 0.75rem 0 0;
-  font-size: 0.75rem;
-  color: rgba(232, 237, 247, 0.5);
+.globe-stage--color :is(.cesium-viewer, .cesium-widget) canvas {
+  filter: none;
+  transition: filter 0.8s ease;
 }
 
 /* Hide default Cesium chrome we disabled in code */
