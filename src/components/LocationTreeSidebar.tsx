@@ -1,54 +1,10 @@
-import { useMemo, useState } from 'react'
-import {
-  LOCATION_TREE,
-  LOCATION_ZOOM,
-  type LocationTreeNode,
-} from '../config/locationTree'
+import { useEffect, useMemo, useState } from 'react'
+import { hasGoogleMapsApiKey } from '../config/googleMaps'
+import { LOCATION_ZOOM, type LocationTreeNode } from '../config/locationTree'
 import { useGlobeStore } from '../store/globeStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
+import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { districtKey } from '../utils/districtKey'
-
-interface SearchEntry {
-  node: LocationTreeNode
-  path: string
-  country: LocationTreeNode | null
-  city: LocationTreeNode | null
-}
-
-function collectSearchEntries(
-  nodes: LocationTreeNode[],
-  country: LocationTreeNode | null = null,
-  city: LocationTreeNode | null = null,
-  pathParts: string[] = [],
-): SearchEntry[] {
-  const entries: SearchEntry[] = []
-
-  for (const node of nodes) {
-    const nextPath = [...pathParts, node.label]
-
-    entries.push({
-      node,
-      path: nextPath.join(' · '),
-      country: node.type === 'country' ? node : country,
-      city: node.type === 'city' ? node : city,
-    })
-
-    if (node.children?.length) {
-      entries.push(
-        ...collectSearchEntries(
-          node.children,
-          node.type === 'country' ? node : country,
-          node.type === 'city' ? node : city,
-          nextPath,
-        ),
-      )
-    }
-  }
-
-  return entries
-}
-
-const SEARCH_ENTRIES = collectSearchEntries(LOCATION_TREE)
 
 interface ListItemProps {
   node: LocationTreeNode
@@ -93,28 +49,51 @@ export function LocationTreeSidebar() {
   const points = useAnnotationsStore((s) => s.points)
   const revealedDistricts = new Set(points.map((p) => p.districtKey))
 
+  const countries = useGoogleLocationStore((s) => s.countries)
+  const countriesLoading = useGoogleLocationStore((s) => s.countriesLoading)
+  const countriesError = useGoogleLocationStore((s) => s.countriesError)
+  const citiesByCountryId = useGoogleLocationStore((s) => s.citiesByCountryId)
+  const citiesLoadingId = useGoogleLocationStore((s) => s.citiesLoadingId)
+  const districtsByCityId = useGoogleLocationStore((s) => s.districtsByCityId)
+  const districtsLoadingId = useGoogleLocationStore((s) => s.districtsLoadingId)
+  const loadCountries = useGoogleLocationStore((s) => s.loadCountries)
+  const loadCities = useGoogleLocationStore((s) => s.loadCities)
+  const loadDistricts = useGoogleLocationStore((s) => s.loadDistricts)
+  const searchLocations = useGoogleLocationStore((s) => s.searchLocations)
+
   const [selectedCountry, setSelectedCountry] = useState<LocationTreeNode | null>(null)
   const [selectedCity, setSelectedCity] = useState<LocationTreeNode | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<LocationTreeNode[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const isSearching = normalizedQuery.length > 0
 
-  const searchResults = useMemo(() => {
-    if (!isSearching) return []
-    return SEARCH_ENTRIES.filter(
-      (entry) =>
-        entry.node.label.toLowerCase().includes(normalizedQuery) ||
-        entry.path.toLowerCase().includes(normalizedQuery),
-    )
-  }, [isSearching, normalizedQuery])
+  useEffect(() => {
+    if (hasGoogleMapsApiKey()) {
+      void loadCountries()
+    }
+  }, [loadCountries])
 
-  const visibleItems = useMemo(() => {
-    if (isSearching) return null
-    if (selectedCity) return selectedCity.children ?? []
-    if (selectedCountry) return selectedCountry.children ?? []
-    return LOCATION_TREE
-  }, [isSearching, selectedCity, selectedCountry])
+  useEffect(() => {
+    if (!isSearching) {
+      setSearchResults([])
+      return
+    }
+
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true)
+      const results = await searchLocations(searchQuery.trim())
+      setSearchResults(results)
+      setSearchLoading(false)
+    }, 300)
+
+    return () => window.clearTimeout(timer)
+  }, [isSearching, searchQuery, searchLocations])
+
+  const visibleCities = selectedCountry ? (citiesByCountryId[selectedCountry.id] ?? []) : []
+  const visibleDistricts = selectedCity ? (districtsByCityId[selectedCity.id] ?? []) : []
 
   const sectionTitle = isSearching
     ? 'Search results'
@@ -124,30 +103,46 @@ export function LocationTreeSidebar() {
         ? 'Cities'
         : 'Countries'
 
-  function handleSelect(node: LocationTreeNode) {
+  async function handleSelectCountry(country: LocationTreeNode) {
+    setSelectedCountry(country)
+    setSelectedCity(null)
+    setSelectedLocationId(country.id)
+    requestFlyToLocation(country.lat, country.lon, LOCATION_ZOOM.country)
+    await loadCities(country, country.countryCode)
+  }
+
+  async function handleSelectCity(city: LocationTreeNode) {
+    if (!selectedCountry) return
+    setSelectedCity(city)
+    setSelectedLocationId(city.id)
+    requestFlyToLocation(city.lat, city.lon, LOCATION_ZOOM.city)
+    await loadDistricts(city, selectedCountry)
+  }
+
+  function handleSelectDistrict(node: LocationTreeNode) {
+    setSelectedLocationId(node.id)
+    requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.district)
+  }
+
+  function handleSearchSelect(node: LocationTreeNode) {
+    setSearchQuery('')
     setSelectedLocationId(node.id)
     requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM[node.type])
-
-    if (isSearching) {
-      const entry = SEARCH_ENTRIES.find((item) => item.node.id === node.id)
-      if (entry?.country) setSelectedCountry(entry.country)
-      if (entry?.city) setSelectedCity(entry.city)
-      else if (node.type === 'country') {
-        setSelectedCountry(node)
-        setSelectedCity(null)
-      } else if (node.type === 'city') {
-        setSelectedCity(node)
-      }
-      setSearchQuery('')
-      return
-    }
 
     if (node.type === 'country') {
       setSelectedCountry(node)
       setSelectedCity(null)
-    } else if (node.type === 'city') {
-      setSelectedCity(node)
+      void loadCities(node, node.countryCode)
+      return
     }
+
+    if (node.type === 'city') {
+      setSelectedCity(node)
+      if (selectedCountry) void loadDistricts(node, selectedCountry)
+      return
+    }
+
+    handleSelectDistrict(node)
   }
 
   function handleBack() {
@@ -161,6 +156,37 @@ export function LocationTreeSidebar() {
   }
 
   const showBack = !isSearching && (selectedCountry !== null || selectedCity !== null)
+  const isLoading =
+    countriesLoading ||
+    (selectedCountry && citiesLoadingId === selectedCountry.id) ||
+    (selectedCity && districtsLoadingId === selectedCity.id)
+
+  const emptyMessage = useMemo(() => {
+    if (!hasGoogleMapsApiKey()) {
+      return 'Set VITE_GOOGLE_MAPS_API_KEY to load Google locations.'
+    }
+    if (countriesError) return countriesError
+    if (isLoading) return 'Loading from Google...'
+    if (isSearching && searchLoading) return 'Searching Google Places...'
+    if (isSearching && !searchLoading && searchResults.length === 0) return 'No locations found'
+    if (selectedCity && visibleDistricts.length === 0) return 'No districts found for this city'
+    if (selectedCountry && visibleCities.length === 0) return 'No cities found for this country'
+    if (!selectedCountry && !isSearching && (countries?.length ?? 0) === 0) {
+      return 'No countries loaded'
+    }
+    return null
+  }, [
+    countries?.length,
+    countriesError,
+    isLoading,
+    isSearching,
+    searchLoading,
+    searchResults.length,
+    selectedCity,
+    selectedCountry,
+    visibleCities.length,
+    visibleDistricts.length,
+  ])
 
   return (
     <aside className="location-tree" aria-label="Countries, cities, and districts">
@@ -169,10 +195,10 @@ export function LocationTreeSidebar() {
         <input
           type="search"
           className="location-tree__search"
-          placeholder="Search locations..."
+          placeholder="Search Google locations..."
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          aria-label="Search locations"
+          aria-label="Search Google locations"
         />
       </div>
       <div className="location-tree__section">
@@ -184,29 +210,45 @@ export function LocationTreeSidebar() {
         <h3 className="location-tree__section-title">{sectionTitle}</h3>
       </div>
       <ul className="location-tree__list location-tree__list--root">
+        {emptyMessage && <li className="location-tree__empty">{emptyMessage}</li>}
         {isSearching &&
-          (searchResults.length > 0 ? (
-            searchResults.map((entry) => (
-              <ListItem
-                key={entry.node.id}
-                node={entry.node}
-                selectedId={selectedLocationId}
-                revealedDistricts={revealedDistricts}
-                subtitle={entry.path}
-                onSelect={handleSelect}
-              />
-            ))
-          ) : (
-            <li className="location-tree__empty">No locations found</li>
-          ))}
-        {!isSearching &&
-          visibleItems?.map((node) => (
+          searchResults.map((node) => (
             <ListItem
               key={node.id}
               node={node}
               selectedId={selectedLocationId}
               revealedDistricts={revealedDistricts}
-              onSelect={handleSelect}
+              onSelect={handleSearchSelect}
+            />
+          ))}
+        {!isSearching && !selectedCountry &&
+          (countries ?? []).map((country) => (
+            <ListItem
+              key={country.id}
+              node={country}
+              selectedId={selectedLocationId}
+              revealedDistricts={revealedDistricts}
+              onSelect={(node) => void handleSelectCountry(node)}
+            />
+          ))}
+        {!isSearching && selectedCountry && !selectedCity &&
+          visibleCities.map((city) => (
+            <ListItem
+              key={city.id}
+              node={city}
+              selectedId={selectedLocationId}
+              revealedDistricts={revealedDistricts}
+              onSelect={(node) => void handleSelectCity(node)}
+            />
+          ))}
+        {!isSearching && selectedCity &&
+          visibleDistricts.map((district) => (
+            <ListItem
+              key={district.id}
+              node={district}
+              selectedId={selectedLocationId}
+              revealedDistricts={revealedDistricts}
+              onSelect={handleSelectDistrict}
             />
           ))}
       </ul>

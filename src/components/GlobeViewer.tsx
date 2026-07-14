@@ -14,13 +14,12 @@ import {
   Viewer,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
-import { resolveProviderForCountry } from '../config/countryProviders'
 import { getMapProvider } from '../providers/registry'
+import { reverseGeocode } from '../services/googleGeocoding'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
-import { countryFromCoords } from '../utils/countryFromCoords'
 import { DISTRICT_FILL_RADIUS_M } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
@@ -121,40 +120,29 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
     let lastHeading = viewer.camera.heading
     let lastHeight = viewer.camera.positionCartographic.height
-    let providerSwitchToken = 0
+    let geocodeToken = 0
 
-    async function applyProviderForCoords(lat: number, lon: number) {
-      const country = countryFromCoords(lat, lon)
-      setCountryCode(country)
-
-      const providerId = resolveProviderForCountry(country)
-      setProviderId(providerId)
-
-      const token = ++providerSwitchToken
+    async function applyGoogleProvider() {
       try {
-        const provider = getMapProvider(providerId)
+        const provider = getMapProvider('google')
         const imagery = await provider.createImageryProvider()
-        if (token !== providerSwitchToken) return
-
         viewer.imageryLayers.removeAll()
         viewer.imageryLayers.addImageryProvider(imagery)
+        setProviderId('google')
       } catch (error) {
-        console.warn(`Provider "${providerId}" failed, falling back to OSM`, error)
-        if (token !== providerSwitchToken) return
-
-        const fallback = getMapProvider('osm')
-        const imagery = await fallback.createImageryProvider()
-        viewer.imageryLayers.removeAll()
-        viewer.imageryLayers.addImageryProvider(imagery)
-        setProviderId('osm')
+        console.error('Google Maps failed to load', error)
       }
     }
 
-    const initialCarto = viewer.camera.positionCartographic
-    void applyProviderForCoords(
-      CesiumMath.toDegrees(initialCarto.latitude),
-      CesiumMath.toDegrees(initialCarto.longitude),
-    )
+    async function updateCountryFromCoords(lat: number, lon: number) {
+      const token = ++geocodeToken
+      const geocoded = await reverseGeocode(lat, lon)
+      if (token !== geocodeToken || !geocoded?.countryCode) return
+      setCountryCode(geocoded.countryCode)
+    }
+
+    void applyGoogleProvider()
+    void updateCountryFromCoords(55.7558, 37.6173)
 
     const removeMoveEnd = viewer.camera.moveEnd.addEventListener(() => {
       const carto = viewer.camera.positionCartographic
@@ -175,7 +163,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       lastHeading = viewer.camera.heading
       lastHeight = height
 
-      void applyProviderForCoords(lat, lon)
+      void updateCountryFromCoords(lat, lon)
     })
 
     return () => {

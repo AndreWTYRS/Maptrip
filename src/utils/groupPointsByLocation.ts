@@ -1,5 +1,5 @@
-import { LOCATION_TREE, type LocationTreeNode } from '../config/locationTree'
 import type { MapPoint } from '../types/annotations'
+import type { ReverseGeocodeResult } from '../services/googleGeocoding'
 
 export interface PointCityGroup {
   id: string
@@ -17,77 +17,30 @@ export interface PointCountryGroup {
   cities: PointCityGroup[]
 }
 
-interface CityRef {
-  country: LocationTreeNode
-  city: LocationTreeNode
+function locationKey(value: string | null | undefined, fallback: string): string {
+  return (value ?? fallback).toLowerCase().replace(/[^a-z0-9]+/g, '-')
 }
 
-function collectCities(
-  nodes: LocationTreeNode[],
-  country: LocationTreeNode | null = null,
-): CityRef[] {
-  const refs: CityRef[] = []
-
-  for (const node of nodes) {
-    const nextCountry = node.type === 'country' ? node : country
-    if (node.type === 'city' && nextCountry) {
-      refs.push({ country: nextCountry, city: node })
-    }
-    if (node.children?.length) {
-      refs.push(...collectCities(node.children, nextCountry))
-    }
-  }
-
-  return refs
-}
-
-const CITY_REFS = collectCities(LOCATION_TREE)
-
-function distanceSq(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLat = lat1 - lat2
-  const dLon = lon1 - lon2
-  return dLat * dLat + dLon * dLon
-}
-
-function nearestCityRef(point: MapPoint): CityRef | null {
-  if (CITY_REFS.length === 0) return null
-
-  let best = CITY_REFS[0]
-  let bestDist = distanceSq(point.lat, point.lon, best.city.lat, best.city.lon)
-
-  for (let i = 1; i < CITY_REFS.length; i += 1) {
-    const ref = CITY_REFS[i]
-    const dist = distanceSq(point.lat, point.lon, ref.city.lat, ref.city.lon)
-    if (dist < bestDist) {
-      best = ref
-      bestDist = dist
-    }
-  }
-
-  return best
-}
-
-export function groupPointsByLocation(points: MapPoint[]): PointCountryGroup[] {
+export function groupPointsByGeocoding(
+  points: MapPoint[],
+  geocoded: Map<string, ReverseGeocodeResult | null>,
+): PointCountryGroup[] {
   const countryMap = new Map<string, PointCountryGroup>()
 
   for (const point of points) {
-    const ref = nearestCityRef(point)
-    const countryId = ref?.country.id ?? 'other'
-    const countryLabel = ref?.country.label ?? 'Other locations'
-    const countryLat = ref?.country.lat ?? point.lat
-    const countryLon = ref?.country.lon ?? point.lon
-    const cityId = ref?.city.id ?? `${countryId}-unknown`
-    const cityLabel = ref?.city.label ?? 'Unknown city'
-    const cityLat = ref?.city.lat ?? point.lat
-    const cityLon = ref?.city.lon ?? point.lon
+    const location = geocoded.get(point.id)
+    const countryLabel = location?.country ?? 'Other locations'
+    const countryId = locationKey(location?.countryCode, 'other')
+    const cityLabel = location?.city ?? 'Unknown city'
+    const cityId = `${countryId}-${locationKey(cityLabel, 'unknown')}`
 
     let country = countryMap.get(countryId)
     if (!country) {
       country = {
         id: countryId,
         label: countryLabel,
-        lat: countryLat,
-        lon: countryLon,
+        lat: point.lat,
+        lon: point.lon,
         cities: [],
       }
       countryMap.set(countryId, country)
@@ -98,8 +51,8 @@ export function groupPointsByLocation(points: MapPoint[]): PointCountryGroup[] {
       city = {
         id: cityId,
         label: cityLabel,
-        lat: cityLat,
-        lon: cityLon,
+        lat: point.lat,
+        lon: point.lon,
         points: [],
       }
       country.cities.push(city)

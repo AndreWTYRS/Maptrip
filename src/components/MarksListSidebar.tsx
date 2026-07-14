@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useGlobeStore } from '../store/globeStore'
+import { useGoogleLocationStore } from '../store/googleLocationStore'
 import type { MapPoint } from '../types/annotations'
+import type { ReverseGeocodeResult } from '../services/googleGeocoding'
 import {
   collectPointSearchEntries,
-  groupPointsByLocation,
+  groupPointsByGeocoding,
   type PointCityGroup,
   type PointCountryGroup,
 } from '../utils/groupPointsByLocation'
@@ -84,18 +86,53 @@ export function MarksListSidebar() {
   const points = useAnnotationsStore((s) => s.points)
   const removePoint = useAnnotationsStore((s) => s.removePoint)
   const requestFlyToLocation = useGlobeStore((s) => s.requestFlyToLocation)
+  const resolvePointLocation = useGoogleLocationStore((s) => s.resolvePointLocation)
 
   const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null)
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null)
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [geocodedPoints, setGeocodedPoints] = useState<Map<string, ReverseGeocodeResult | null>>(
+    new Map(),
+  )
 
   const userPoints = useMemo(
     () => (user ? points.filter((point) => point.userId === user.id) : []),
     [points, user],
   )
 
-  const countryGroups = useMemo(() => groupPointsByLocation(userPoints), [userPoints])
+  useEffect(() => {
+    if (!user || userPoints.length === 0) {
+      setGeocodedPoints(new Map())
+      return
+    }
+
+    let cancelled = false
+
+    async function geocodePoints() {
+      const entries = await Promise.all(
+        userPoints.map(async (point) => {
+          const location = await resolvePointLocation(point.id, point.lat, point.lon)
+          return [point.id, location] as const
+        }),
+      )
+
+      if (!cancelled) {
+        setGeocodedPoints(new Map(entries))
+      }
+    }
+
+    void geocodePoints()
+
+    return () => {
+      cancelled = true
+    }
+  }, [resolvePointLocation, user, userPoints])
+
+  const countryGroups = useMemo(
+    () => groupPointsByGeocoding(userPoints, geocodedPoints),
+    [geocodedPoints, userPoints],
+  )
   const searchEntries = useMemo(() => collectPointSearchEntries(countryGroups), [countryGroups])
 
   const activeCountry = useMemo(

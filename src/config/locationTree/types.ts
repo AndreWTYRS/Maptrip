@@ -8,6 +8,8 @@ export interface LocationTreeNode {
   type: LocationNodeType
   lat: number
   lon: number
+  placeId?: string
+  countryCode?: string
   children?: LocationTreeNode[]
 }
 
