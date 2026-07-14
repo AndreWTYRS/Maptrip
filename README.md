@@ -2,6 +2,8 @@
 
 Интерактивный 3D-глобус с размытой картой, зумом до уровня района и сменой провайдера карт по стране.
 
+**Live demo:** https://andrewtyrs.github.io/Maptrip/
+
 ## Возможности
 
 - **3D-глобус** — вращение, pinch/scroll zoom, приближение до ~30 м (уровень района)
@@ -41,9 +43,11 @@ cp .env.example .env
 
 ### OAuth
 
-**Google:** создайте OAuth Client ID (Web application) в [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Добавьте `http://localhost:5173` в Authorized JavaScript origins.
+**Google:** создайте OAuth Client ID (Web application) в [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Добавьте origins:
+- `http://localhost:5173`
+- `https://andrewtyrs.github.io`
 
-**Meta:** создайте приложение в [Meta for Developers](https://developers.facebook.com/), включите Facebook Login, добавьте `localhost` в Valid OAuth Redirect URIs.
+**Meta:** создайте приложение в [Meta for Developers](https://developers.facebook.com/), включите Facebook Login, добавьте `localhost` и `andrewtyrs.github.io` в Valid OAuth Redirect URIs.
 
 ## Уровни зума
 
