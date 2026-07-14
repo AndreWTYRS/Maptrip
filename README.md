@@ -4,6 +4,10 @@
 
 **Live demo:** https://andrewtyrs.github.io/Maptrip/
 
+> Если ссылка отдаёт 404 — один раз включите Pages:  
+> **Settings → Pages → Build and deployment → Source: Deploy from branch → `gh-pages` / `/ (root)`**  
+> После этого сайт появится через 1–2 минуты.
+
 ## Возможности
 
 - **3D-глобус** — вращение, pinch/scroll zoom, приближение до ~30 м (уровень района)
