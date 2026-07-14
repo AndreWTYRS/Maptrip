@@ -4,6 +4,7 @@ import { useAnnotationsStore } from '../store/annotationsStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
 import { getMapProvider } from '../providers/registry'
+import { countryNameEn } from '../utils/countryNameEn'
 import { AuthPanel } from './AuthPanel'
 
 function formatAltitude(meters: number): string {
@@ -23,6 +24,7 @@ export function MapHud() {
   const revealedDistrictKeys = useAnnotationsStore((s) => s.revealedDistrictKeys)
 
   const providerName = getMapProvider(providerId).name
+  const countryName = countryNameEn(countryCode)
   const zoomLabel = ZOOM_LEVEL_BY_ID[zoomLevel].label
   const colorScheme = resolveMapColorScheme(
     zoomLevel,
@@ -38,7 +40,7 @@ export function MapHud() {
       <div className="map-hud__brand">Maptrip</div>
       <div className="map-hud__stats">
         <span>{providerName}</span>
-        {countryCode && <span>{countryCode}</span>}
+        {countryName && <span>{countryName}</span>}
         <span>{zoomLabel}</span>
         <span>{formatAltitude(altitudeMeters)}</span>
         <span className={isColored ? 'map-hud__status map-hud__status--on' : 'map-hud__status'}>

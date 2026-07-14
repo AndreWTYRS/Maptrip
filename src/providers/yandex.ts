@@ -1,4 +1,5 @@
 import { UrlTemplateImageryProvider, WebMercatorTilingScheme } from 'cesium'
+import { YANDEX_MAP_LANGUAGE } from '../config/mapLanguage'
 import type { MapProvider, MapProviderContext } from './types'
 
 /**
@@ -17,7 +18,7 @@ export function createYandexProvider(context: MapProviderContext = {}): MapProvi
       }
 
       return new UrlTemplateImageryProvider({
-        url: `https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&lang=ru_RU&apikey=${apiKey}`,
+        url: `https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&lang=${YANDEX_MAP_LANGUAGE}&apikey=${apiKey}`,
         tilingScheme: new WebMercatorTilingScheme(),
         maximumLevel: 19,
         credit: '© Yandex',
