@@ -33,6 +33,56 @@
   color: rgba(232, 237, 247, 0.55);
 }
 
+.location-tree__search-wrap {
+  padding: 0 0.75rem 0.625rem;
+}
+
+.location-tree__search {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(232, 237, 247, 0.92);
+  font-size: 0.8125rem;
+}
+
+.location-tree__search::placeholder {
+  color: rgba(232, 237, 247, 0.4);
+}
+
+.location-tree__search:focus {
+  outline: none;
+  border-color: rgba(99, 140, 255, 0.55);
+}
+
+.location-tree__section {
+  padding: 0 0.75rem 0.375rem;
+}
+
+.location-tree__back {
+  margin-bottom: 0.375rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(184, 204, 255, 0.9);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.location-tree__back:hover {
+  color: #fff;
+}
+
+.location-tree__section-title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(232, 237, 247, 0.45);
+}
+
 .location-tree__list {
   margin: 0;
   padding: 0;
@@ -50,6 +100,33 @@
   align-items: center;
   gap: 0.25rem;
   min-height: 2rem;
+}
+
+.location-tree__label-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.location-tree__label-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-tree__label-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: rgba(232, 237, 247, 0.45);
+}
+
+.location-tree__empty {
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  color: rgba(232, 237, 247, 0.45);
 }
 
 .location-tree__toggle {
@@ -71,8 +148,9 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  width: 100%;
   min-width: 0;
-  padding: 0.25rem 0.5rem 0.25rem 0;
+  padding: 0.375rem 0.75rem;
   border: none;
   background: transparent;
   color: rgba(232, 237, 247, 0.88);
