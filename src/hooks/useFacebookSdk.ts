@@ -25,6 +25,10 @@ export function useFacebookSdk(appId: string): boolean {
     }
 
     const existing = document.getElementById('facebook-jssdk')
+    if (existing && window.FB) {
+      setReady(true)
+      return
+    }
     if (existing) return
 
     const script = document.createElement('script')

@@ -94,6 +94,7 @@ export function AuthPanel() {
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
           onError={() => console.warn('Google sign-in failed')}
+          useOneTap={false}
           theme="filled_black"
           size="medium"
           text="signin_with"

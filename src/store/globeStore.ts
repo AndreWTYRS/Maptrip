@@ -32,7 +32,7 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   altitudeMeters: 12_000_000,
   centerLat: 55.7558,
   centerLon: 37.6173,
-  zoomLevel: 'country',
+  zoomLevel: 'world',
   flyToLevelRequest: null,
   setProviderId: (providerId) => set({ providerId }),
   setCountryCode: (countryCode) => set({ countryCode }),

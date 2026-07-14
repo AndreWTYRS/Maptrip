@@ -17,7 +17,7 @@ import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
 const MAX_ZOOM_DISTANCE = 40_000_000
-const INITIAL_ALTITUDE = 600_000
+const INITIAL_ALTITUDE = 15_000_000
 
 interface GlobeViewerProps {
   className?: string
@@ -77,7 +77,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     })
 
     setAltitudeMeters(INITIAL_ALTITUDE)
-    setZoomLevel('country')
+    setZoomLevel('world')
     setCenter(55.7558, 37.6173)
 
     let lastHeading = viewer.camera.heading
