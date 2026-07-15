@@ -10,6 +10,8 @@ export interface LocationTreeNode {
   lon: number
   placeId?: string
   countryCode?: string
+  /** H3 cell id for South Korea hex districts */
+  hexId?: string
   children?: LocationTreeNode[]
 }
 

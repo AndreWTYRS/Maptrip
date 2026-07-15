@@ -19,8 +19,9 @@ import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
+import { cellToBoundary } from 'h3-js'
 import { countryFromCoords } from '../utils/countryFromCoords'
-import { DISTRICT_FILL_RADIUS_M } from '../utils/districtKey'
+import { DISTRICT_FILL_RADIUS_M, isH3DistrictKey } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
@@ -223,10 +224,23 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     const outlineColor = Color.fromCssColorString('#9eb6ff').withAlpha(0.65)
 
     for (const point of points.filter((p) => !userId || p.userId === userId)) {
-      viewer.entities.add({
+      const entityOptions: Parameters<Viewer['entities']['add']>[0] = {
         id: `ann-district-${point.id}`,
         position: Cartesian3.fromDegrees(point.lon, point.lat),
-        ellipse: {
+      }
+
+      if (isH3DistrictKey(point.districtKey)) {
+        const boundary = cellToBoundary(point.districtKey, true)
+        entityOptions.polygon = {
+          hierarchy: Cartesian3.fromDegreesArray(boundary.flat()),
+          material: fillColor,
+          outline: true,
+          outlineColor,
+          outlineWidth: 2,
+          height: 0,
+        }
+      } else {
+        entityOptions.ellipse = {
           semiMajorAxis: DISTRICT_FILL_RADIUS_M,
           semiMinorAxis: DISTRICT_FILL_RADIUS_M,
           material: fillColor,
@@ -234,8 +248,10 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
           outlineColor,
           outlineWidth: 2,
           height: 0,
-        },
-      })
+        }
+      }
+
+      viewer.entities.add(entityOptions)
     }
 
     if (userId) {

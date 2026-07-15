@@ -12,6 +12,7 @@ const COUNTRY_BBOX: Array<{ code: string; minLat: number; maxLat: number; minLon
   { code: 'FR', minLat: 41, maxLat: 51, minLon: -5, maxLon: 10 },
   { code: 'BR', minLat: -34, maxLat: 5, minLon: -74, maxLon: -34 },
   { code: 'JP', minLat: 24, maxLat: 46, minLon: 122, maxLon: 146 },
+  { code: 'KR', minLat: 33, maxLat: 39.5, minLon: 124, maxLon: 132 },
   { code: 'CN', minLat: 18, maxLat: 54, minLon: 73, maxLon: 135 },
 ]
 

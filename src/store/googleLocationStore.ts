@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { ISO_COUNTRY_CODES } from '../config/isoCountryCodes'
 import { hasGoogleMapsApiKey } from '../config/googleMaps'
 import { loadCitiesForCountry, loadCountriesFromOpenData } from '../config/citiesByCountry/loadCities'
+import { hasKrHexDistricts, loadDistrictsForCity } from '../config/districtsByCity/loadDistricts'
 import type { LocationTreeNode } from '../config/locationTree/types'
 import {
   geocodeAllCountries,
@@ -124,10 +125,18 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
         set({ districtsLoadingId: city.id })
         try {
-          const districts = await searchDistrictsInCity(city.label, country.label, {
-            lat: city.lat,
-            lon: city.lon,
-          })
+          const countryCode = country.countryCode ?? country.id.slice(0, 2).toUpperCase()
+          let districts = hasKrHexDistricts(countryCode)
+            ? await loadDistrictsForCity(city, countryCode)
+            : []
+
+          if (!districts.length) {
+            districts = await searchDistrictsInCity(city.label, country.label, {
+              lat: city.lat,
+              lon: city.lon,
+            })
+          }
+
           set((state) => ({
             districtsByCityId: { ...state.districtsByCityId, [city.id]: districts },
             districtsLoadingId: null,

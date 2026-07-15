@@ -3,7 +3,7 @@ import { LOCATION_ZOOM, type LocationTreeNode } from '../config/locationTree'
 import { useGlobeStore } from '../store/globeStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
-import { districtKey } from '../utils/districtKey'
+import { districtKeyForNode } from '../config/districtsByCity/loadDistricts'
 
 interface ListItemProps {
   node: LocationTreeNode
@@ -15,7 +15,7 @@ interface ListItemProps {
 
 function ListItem({ node, selectedId, revealedDistricts, subtitle, onSelect }: ListItemProps) {
   const isRevealed =
-    node.type === 'district' && revealedDistricts.has(districtKey(node.lat, node.lon))
+    node.type === 'district' && revealedDistricts.has(districtKeyForNode(node))
 
   return (
     <li className="location-tree__item">
