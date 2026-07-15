@@ -10,13 +10,19 @@ import {
   LabelStyle,
   Math as CesiumMath,
   VerticalOrigin,
+  Rectangle,
   ScreenSpaceEventType,
   Terrain,
   Viewer,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { getMapProvider } from '../providers/registry'
-import { circleAsRing, createPolygonMaskedImageryProvider } from '../providers/polygonMaskedImagery'
+import {
+  circleAsRing,
+  bumpPolygonMaskVersion,
+  createPolygonMaskedImageryProvider,
+  unionRectangleForRings,
+} from '../providers/polygonMaskedImagery'
 import type { LatLonRing } from '../config/districtsByCity/krGuLookup'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
@@ -39,6 +45,15 @@ const MAX_ZOOM_DISTANCE = 40_000_000
 const INITIAL_ALTITUDE = 15_000_000
 const DISTRICT_BORDER_COLOR = Color.fromCssColorString(DISTRICT_BORDER_CSS)
 const DISTRICT_OUTLINE_FILL = Color.fromCssColorString('#ffffff').withAlpha(0.01)
+
+function invalidateImageryLayerCache(
+  viewer: Viewer,
+  layer: ReturnType<Viewer['imageryLayers']['addImageryProvider']>,
+) {
+  const internal = layer as { _imageryCache?: Record<string, unknown> }
+  if (internal._imageryCache) internal._imageryCache = {}
+  viewer.scene.requestRender()
+}
 
 function addDistrictPolygon(
   viewer: Viewer,
@@ -132,11 +147,21 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     for (const point of points.filter((p) => !userId || p.userId === userId)) {
       keys.add(point.districtKey)
     }
+    for (const route of routes.filter((r) => !userId || r.userId === userId)) {
+      for (const key of route.districtKeys) keys.add(key)
+    }
     return [...keys]
-  }, [points, user])
+  }, [points, routes, user])
+
+  const revealedDistrictSet = useMemo(
+    () => new Set(revealedDistrictKeys),
+    [revealedDistrictKeys],
+  )
 
   const revealedRings = useMemo(() => {
     const rings: LatLonRing[] = []
+    const routePoints = routes.flatMap((route) => route.points)
+
     for (const districtKeyValue of revealedDistrictKeys) {
       if (isKrGuDistrictKey(districtKeyValue)) {
         const gu = getKrGuById(districtKeyValue)
@@ -144,13 +169,15 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         continue
       }
 
-      const samplePoint = points.find((point) => point.districtKey === districtKeyValue)
+      const samplePoint =
+        points.find((point) => point.districtKey === districtKeyValue) ??
+        routePoints.find((point) => point.districtKey === districtKeyValue)
       if (samplePoint) {
         rings.push(circleAsRing(samplePoint.lat, samplePoint.lon, DISTRICT_FILL_RADIUS_M))
       }
     }
     return rings
-  }, [revealedDistrictKeys, points, krBoundariesReady])
+  }, [revealedDistrictKeys, points, routes, krBoundariesReady])
 
   useEffect(() => {
     const needsKr =
@@ -403,6 +430,8 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     if (!isKrSelection) return
 
     for (const district of districtsToOutline) {
+      if (revealedDistrictSet.has(district.id)) continue
+
       const rings = district.boundaryRings
       if (!rings?.length) continue
 
@@ -420,6 +449,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     districtsToOutline,
     activeDistrictCityId,
     activeDistrictId,
+    revealedDistrictSet,
   ])
 
   useEffect(() => {
@@ -434,20 +464,32 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     layer.brightness = tone.brightness
   }, [viewerReady, zoomLevel])
 
+  const revealedDistrictSignature = revealedDistrictKeys.join('|')
+
   useEffect(() => {
     const viewer = viewerRef.current
     if (!viewer || !viewerReady) return
 
     revealedRingsRef.current = revealedRings
 
-    const existing = colorLayerRef.current
-    if (existing) {
-      viewer.imageryLayers.remove(existing, true)
-      colorLayerRef.current = null
+    if (!revealedRings.length) {
+      const existing = colorLayerRef.current
+      if (existing) {
+        viewer.imageryLayers.remove(existing, true)
+        colorLayerRef.current = null
+      }
+      return
     }
 
-    const showColorReveal = zoomLevel !== 'world' && revealedRings.length > 0
-    if (!showColorReveal) return
+    bumpPolygonMaskVersion()
+    const cutout = unionRectangleForRings(revealedRings)
+    const existing = colorLayerRef.current
+
+    if (existing) {
+      if (cutout) existing.cutoutRectangle = cutout
+      invalidateImageryLayerCache(viewer, existing)
+      return
+    }
 
     const activeViewer = viewer
     let cancelled = false
@@ -460,6 +502,11 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       const layer = activeViewer.imageryLayers.addImageryProvider(masked)
       layer.saturation = 1
       layer.brightness = 1
+      if (cutout) layer.cutoutRectangle = cutout
+      const currentZoom = useGlobeStore.getState().zoomLevel
+      layer.show =
+        (currentZoom === 'city' || currentZoom === 'district') &&
+        revealedRingsRef.current.length > 0
       colorLayerRef.current = layer
     }
 
@@ -468,7 +515,15 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     return () => {
       cancelled = true
     }
-  }, [viewerReady, zoomLevel, revealedRings, krBoundariesReady])
+  }, [viewerReady, revealedDistrictSignature, revealedRings, krBoundariesReady])
+
+  useEffect(() => {
+    const layer = colorLayerRef.current
+    if (!layer) return
+
+    const showAtZoom = zoomLevel === 'city' || zoomLevel === 'district'
+    layer.show = showAtZoom && revealedRingsRef.current.length > 0
+  }, [zoomLevel, revealedDistrictSignature, viewerReady])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -484,18 +539,46 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     const target = flyToLocationRequest ?? levelTarget
     if (!target) return
 
+    const syncCameraState = () => {
+      const carto = viewer.camera.positionCartographic
+      const lat = CesiumMath.toDegrees(carto.latitude)
+      const lon = CesiumMath.toDegrees(carto.longitude)
+      const height = carto.height
+      setCenter(lat, lon)
+      setAltitudeMeters(height)
+      setZoomLevel(altitudeToZoomLevel(height))
+      clearFlyToRequest()
+    }
+
+    recordAction('globe_zoom')
+
+    if (flyToLocationRequest?.bounds) {
+      const { bounds } = flyToLocationRequest
+      const centerLat = (bounds.south + bounds.north) / 2
+      const centerLon = (bounds.west + bounds.east) / 2
+      setCenter(centerLat, centerLon)
+      setZoomLevel(target.level)
+
+      viewer.camera.flyTo({
+        destination: Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
+        duration: 1.4,
+        complete: syncCameraState,
+        cancel: syncCameraState,
+      })
+      return
+    }
+
     const altitude = getAltitudeForLevel(target.level)
 
     setCenter(target.lat, target.lon)
     setZoomLevel(target.level)
     setAltitudeMeters(altitude)
-    recordAction('globe_zoom')
 
     viewer.camera.flyTo({
       destination: Cartesian3.fromDegrees(target.lon, target.lat, altitude),
       duration: 1.4,
-      complete: () => clearFlyToRequest(),
-      cancel: () => clearFlyToRequest(),
+      complete: syncCameraState,
+      cancel: syncCameraState,
     })
   }, [
     viewerReady,

@@ -31,7 +31,7 @@ export function sanitizeRings(rings: LatLonRing[] | undefined): LatLonRing[] {
   return (rings ?? []).filter(ringIsValid)
 }
 
-function pointInRing(lon: number, lat: number, ring: LatLonRing): boolean {
+export function pointInRing(lon: number, lat: number, ring: LatLonRing): boolean {
   if (!ringIsValid(ring)) return false
 
   let inside = false

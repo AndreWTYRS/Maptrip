@@ -12,6 +12,7 @@ interface FlyToLocationRequest {
   lon: number
   level: ZoomLevel
   token: number
+  bounds?: { west: number; south: number; east: number; north: number }
 }
 
 interface GlobeState {
@@ -37,7 +38,7 @@ interface GlobeState {
   setActiveDistrictCityId: (id: string | null) => void
   setActiveDistrictId: (id: string | null) => void
   requestFlyToLevel: (level: ZoomLevel) => void
-  requestFlyToLocation: (lat: number, lon: number, level: ZoomLevel) => void
+  requestFlyToLocation: (lat: number, lon: number, level: ZoomLevel, bounds?: FlyToLocationRequest['bounds']) => void
   clearFlyToRequest: () => void
 }
 
@@ -65,11 +66,11 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   setActiveDistrictId: (activeDistrictId) => set({ activeDistrictId }),
   requestFlyToLevel: (level) =>
     set({ flyToLevelRequest: { level, token: ++flyToToken } }),
-  requestFlyToLocation: (lat, lon, level) =>
+  requestFlyToLocation: (lat, lon, level, bounds?) =>
     set({
       centerLat: lat,
       centerLon: lon,
-      flyToLocationRequest: { lat, lon, level, token: ++flyToToken },
+      flyToLocationRequest: { lat, lon, level, token: ++flyToToken, bounds },
     }),
   clearFlyToRequest: () =>
     set({ flyToLevelRequest: null, flyToLocationRequest: null }),

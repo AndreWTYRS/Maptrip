@@ -7,6 +7,7 @@ import { isDistrictRevealed } from '../config/districtsByCity/loadDistricts'
 import { loadKrGuLookup } from '../config/districtsByCity/krGuLookup'
 import { useLocationPreferencesStore } from '../store/locationPreferencesStore'
 import { getLocationLabel } from '../utils/locationLabel'
+import { boundsFromDistrictNodes, boundsFromRings } from '../utils/geoBounds'
 
 interface ListItemProps {
   node: LocationTreeNode
@@ -51,7 +52,14 @@ export function LocationTreeSidebar() {
   const setActiveDistrictCityId = useGlobeStore((s) => s.setActiveDistrictCityId)
   const setActiveDistrictId = useGlobeStore((s) => s.setActiveDistrictId)
   const points = useAnnotationsStore((s) => s.points)
-  const revealedDistricts = new Set(points.map((p) => p.districtKey))
+  const routes = useAnnotationsStore((s) => s.routes)
+  const revealedDistricts = useMemo(() => {
+    const keys = new Set(points.map((point) => point.districtKey))
+    for (const route of routes) {
+      for (const key of route.districtKeys) keys.add(key)
+    }
+    return keys
+  }, [points, routes])
 
   const countries = useGoogleLocationStore((s) => s.countries)
   const countriesLoading = useGoogleLocationStore((s) => s.countriesLoading)
@@ -126,23 +134,25 @@ export function LocationTreeSidebar() {
     setActiveDistrictCityId(city.id)
     setActiveDistrictId(null)
     setSelectedLocationId(city.id)
-    requestFlyToLocation(city.lat, city.lon, LOCATION_ZOOM.city)
-    await loadDistricts(city, selectedCountry)
+    const districts = await loadDistricts(city, selectedCountry)
+    const bounds = boundsFromDistrictNodes(districts)
+    requestFlyToLocation(city.lat, city.lon, LOCATION_ZOOM.city, bounds)
   }
 
   function handleSelectDistrict(node: LocationTreeNode) {
     setSelectedLocationId(node.id)
     setActiveDistrictId(node.id)
     if (selectedCity) setActiveDistrictCityId(selectedCity.id)
-    requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.district)
+    const bounds = boundsFromRings(node.boundaryRings ?? [])
+    requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.district, bounds)
   }
 
-  function handleSearchSelect(node: LocationTreeNode) {
+  async function handleSearchSelect(node: LocationTreeNode) {
     setSearchQuery('')
     setSelectedLocationId(node.id)
-    requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM[node.type])
 
     if (node.type === 'country') {
+      requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.country)
       setSelectedCountry(node)
       setSelectedCity(null)
       setActiveDistrictCityId(null)
@@ -155,7 +165,25 @@ export function LocationTreeSidebar() {
       setSelectedCity(node)
       setActiveDistrictCityId(node.id)
       setActiveDistrictId(null)
-      if (selectedCountry) void loadDistricts(node, selectedCountry)
+      const country =
+        selectedCountry ??
+        (node.countryCode
+          ? ({
+              id: node.countryCode.toLowerCase(),
+              label: node.countryCode,
+              type: 'country' as const,
+              lat: node.lat,
+              lon: node.lon,
+              countryCode: node.countryCode,
+            } satisfies LocationTreeNode)
+          : null)
+      if (country) {
+        const districts = await loadDistricts(node, country)
+        const bounds = boundsFromDistrictNodes(districts)
+        requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.city, bounds)
+      } else {
+        requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.city)
+      }
       return
     }
 

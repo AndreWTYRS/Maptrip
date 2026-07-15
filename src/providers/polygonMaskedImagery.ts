@@ -5,9 +5,38 @@ import {
   type ImageryTypes,
   type Request,
 } from 'cesium'
-import { pointInGuRings, type LatLonRing } from '../config/districtsByCity/krGuLookup'
+import { pointInRing, type LatLonRing } from '../config/districtsByCity/krGuLookup'
 
-function ringBBox(ring: LatLonRing) {
+/** Mask in coarse blocks — ~64× fewer point-in-polygon checks per tile. */
+const MASK_BLOCK = 8
+
+interface RingBounds {
+  ring: LatLonRing
+  minLat: number
+  maxLat: number
+  minLon: number
+  maxLon: number
+}
+
+const maskCache = new Map<string, HTMLCanvasElement>()
+let maskVersion = 0
+let transparent256: HTMLCanvasElement | null = null
+const MASK_CACHE_LIMIT = 256
+
+export function bumpPolygonMaskVersion(): void {
+  maskVersion += 1
+  maskCache.clear()
+}
+
+function rememberMaskedTile(key: string, canvas: HTMLCanvasElement) {
+  if (maskCache.size >= MASK_CACHE_LIMIT) {
+    const oldest = maskCache.keys().next().value
+    if (oldest) maskCache.delete(oldest)
+  }
+  maskCache.set(key, canvas)
+}
+
+function ringBounds(ring: LatLonRing): RingBounds {
   let minLat = Infinity
   let maxLat = -Infinity
   let minLon = Infinity
@@ -18,7 +47,19 @@ function ringBBox(ring: LatLonRing) {
     minLon = Math.min(minLon, lon)
     maxLon = Math.max(maxLon, lon)
   }
-  return { minLat, maxLat, minLon, maxLon }
+  return { ring, minLat, maxLat, minLon, maxLon }
+}
+
+function ringsForTile(tileRect: Rectangle, bounds: RingBounds[]): RingBounds[] {
+  const west = CesiumMath.toDegrees(tileRect.west)
+  const south = CesiumMath.toDegrees(tileRect.south)
+  const east = CesiumMath.toDegrees(tileRect.east)
+  const north = CesiumMath.toDegrees(tileRect.north)
+
+  return bounds.filter(
+    ({ minLat, maxLat, minLon, maxLon }) =>
+      west <= maxLon && east >= minLon && south <= maxLat && north >= minLat,
+  )
 }
 
 function getImageSize(image: ImageryTypes): { width: number; height: number } {
@@ -30,29 +71,32 @@ function getImageSize(image: ImageryTypes): { width: number; height: number } {
   return { width: 256, height: 256 }
 }
 
-function toCanvas(image: ImageryTypes, width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return canvas
-  ctx.drawImage(image as CanvasImageSource, 0, 0, width, height)
-  return canvas
-}
-
-function transparentTile(width: number, height: number): HTMLCanvasElement {
+function getTransparentTile(width: number, height: number): HTMLCanvasElement {
+  if (width === 256 && height === 256) {
+    if (!transparent256) transparent256 = document.createElement('canvas')
+    transparent256.width = 256
+    transparent256.height = 256
+    return transparent256
+  }
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   return canvas
 }
 
-function maskImage(image: ImageryTypes, tileRect: Rectangle, rings: LatLonRing[]): HTMLCanvasElement {
+function maskImage(
+  image: ImageryTypes,
+  tileRect: Rectangle,
+  relevant: RingBounds[],
+): HTMLCanvasElement {
   const { width, height } = getImageSize(image)
-  const canvas = toCanvas(image, width, height)
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
+  ctx.drawImage(image as CanvasImageSource, 0, 0, width, height)
   const imageData = ctx.getImageData(0, 0, width, height)
   const data = imageData.data
 
@@ -63,13 +107,22 @@ function maskImage(image: ImageryTypes, tileRect: Rectangle, rings: LatLonRing[]
   const lonSpan = east - west
   const latSpan = north - south
 
-  for (let py = 0; py < height; py++) {
-    const lat = north - ((py + 0.5) / height) * latSpan
-    for (let px = 0; px < width; px++) {
-      const lon = west + ((px + 0.5) / width) * lonSpan
-      const inside = rings.some((ring) => pointInGuRings(lon, lat, [ring]))
-      if (!inside) {
-        data[(py * width + px) * 4 + 3] = 0
+  for (let by = 0; by < height; by += MASK_BLOCK) {
+    const blockH = Math.min(MASK_BLOCK, height - by)
+    const lat = north - ((by + blockH * 0.5) / height) * latSpan
+
+    for (let bx = 0; bx < width; bx += MASK_BLOCK) {
+      const blockW = Math.min(MASK_BLOCK, width - bx)
+      const lon = west + ((bx + blockW * 0.5) / width) * lonSpan
+
+      const inside = relevant.some(({ ring }) => pointInRing(lon, lat, ring))
+      if (inside) continue
+
+      for (let py = 0; py < blockH; py++) {
+        const row = (by + py) * width
+        for (let px = 0; px < blockW; px++) {
+          data[(row + bx + px) * 4 + 3] = 0
+        }
       }
     }
   }
@@ -93,16 +146,24 @@ export function circleAsRing(lat: number, lon: number, radiusM: number, segments
   return ring
 }
 
-function tileIntersectsRingBounds(tileRect: Rectangle, rings: LatLonRing[]): boolean {
-  const west = CesiumMath.toDegrees(tileRect.west)
-  const south = CesiumMath.toDegrees(tileRect.south)
-  const east = CesiumMath.toDegrees(tileRect.east)
-  const north = CesiumMath.toDegrees(tileRect.north)
+export function unionRectangleForRings(rings: LatLonRing[]): Rectangle | undefined {
+  if (!rings.length) return undefined
 
-  return rings.some((ring) => {
-    const { minLat, maxLat, minLon, maxLon } = ringBBox(ring)
-    return west <= maxLon && east >= minLon && south <= maxLat && north >= minLat
-  })
+  let minLat = Infinity
+  let maxLat = -Infinity
+  let minLon = Infinity
+  let maxLon = -Infinity
+
+  for (const ring of rings) {
+    for (const [lat, lon] of ring) {
+      minLat = Math.min(minLat, lat)
+      maxLat = Math.max(maxLat, lat)
+      minLon = Math.min(minLon, lon)
+      maxLon = Math.max(maxLon, lon)
+    }
+  }
+
+  return Rectangle.fromDegrees(minLon, minLat, maxLon, maxLat)
 }
 
 export function createPolygonMaskedImageryProvider(
@@ -111,6 +172,8 @@ export function createPolygonMaskedImageryProvider(
 ): ImageryProvider {
   const provider = Object.create(base) as ImageryProvider
   const baseRequestImage = base.requestImage.bind(base)
+  let boundsCache: RingBounds[] = []
+  let boundsVersion = -1
 
   Object.defineProperty(provider, 'hasAlphaChannel', {
     configurable: true,
@@ -121,20 +184,32 @@ export function createPolygonMaskedImageryProvider(
     const rings = getRings()
     if (!rings.length) return undefined
 
+    if (boundsVersion !== maskVersion) {
+      boundsCache = rings.map(ringBounds)
+      boundsVersion = maskVersion
+    }
+
     const tileRect = base.tilingScheme.tileXYToRectangle(x, y, level)
     const tileWidth = base.tileWidth
     const tileHeight = base.tileHeight
+    const relevant = ringsForTile(tileRect, boundsCache)
 
-    if (!tileIntersectsRingBounds(tileRect, rings)) {
-      return Promise.resolve(transparentTile(tileWidth, tileHeight))
+    if (!relevant.length) {
+      return Promise.resolve(getTransparentTile(tileWidth, tileHeight))
     }
+
+    const cacheKey = `${maskVersion}:${level}:${x}:${y}`
+    const cached = maskCache.get(cacheKey)
+    if (cached) return Promise.resolve(cached)
 
     const result = baseRequestImage(x, y, level, request)
     if (!result) return result
 
     return Promise.resolve(result).then((image) => {
       if (!image) return image
-      return maskImage(image, tileRect, rings)
+      const masked = maskImage(image, tileRect, relevant)
+      rememberMaskedTile(cacheKey, masked)
+      return masked
     })
   }
 
