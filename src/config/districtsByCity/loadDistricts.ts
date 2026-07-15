@@ -26,23 +26,39 @@ function compactToNode(tuple: CompactDistrict): LocationTreeNode {
   }
 }
 
-export function hasKrHexDistricts(countryCode?: string): boolean {
-  return countryCode?.toUpperCase() === 'KR'
+export function resolveCountryCode(country?: LocationTreeNode): string | undefined {
+  if (country?.countryCode) return country.countryCode.toUpperCase()
+  if (country?.id && country.id.length === 2) return country.id.toUpperCase()
+  return undefined
+}
+
+export function hasKrHexDistricts(country?: LocationTreeNode, city?: LocationTreeNode): boolean {
+  if (resolveCountryCode(country) === 'KR') return true
+  return city?.id.startsWith('kr-') ?? false
 }
 
 export async function loadDistrictsForCity(
   city: LocationTreeNode,
-  countryCode?: string,
+  country?: LocationTreeNode,
 ): Promise<LocationTreeNode[]> {
-  if (!hasKrHexDistricts(countryCode ?? city.countryCode)) return []
+  if (!hasKrHexDistricts(country, city)) return []
 
   const cached = districtCache.get(city.id)
-  if (cached) return cached
+  if (cached?.length) return cached
 
-  const response = await fetch(`${import.meta.env.BASE_URL}data/districts/KR/${city.id}.json`)
-  if (!response.ok) return []
+  const url = `${import.meta.env.BASE_URL}data/districts/KR/${city.id}.json`
+  const response = await fetch(url)
+  if (!response.ok) {
+    console.warn(`KR districts not found for ${city.id} (${response.status})`, url)
+    return []
+  }
 
   const payload = (await response.json()) as KrDistrictFile
+  if (!Array.isArray(payload.districts) || payload.districts.length === 0) {
+    console.warn(`KR districts file is empty for ${city.id}`)
+    return []
+  }
+
   const districts = payload.districts.map(compactToNode)
   districtCache.set(city.id, districts)
   return districts

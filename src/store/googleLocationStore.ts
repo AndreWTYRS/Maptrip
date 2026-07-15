@@ -121,16 +121,14 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
       loadDistricts: async (city, country) => {
         const cached = get().districtsByCityId[city.id]
-        if (cached) return cached
+        if (cached?.length) return cached
 
         set({ districtsLoadingId: city.id })
         try {
-          const countryCode = country.countryCode ?? country.id.slice(0, 2).toUpperCase()
-          let districts = hasKrHexDistricts(countryCode)
-            ? await loadDistrictsForCity(city, countryCode)
-            : []
+          const useKrHex = hasKrHexDistricts(country, city)
+          let districts = useKrHex ? await loadDistrictsForCity(city, country) : []
 
-          if (!districts.length) {
+          if (!districts.length && !useKrHex) {
             districts = await searchDistrictsInCity(city.label, country.label, {
               lat: city.lat,
               lon: city.lon,
@@ -138,11 +136,14 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
           }
 
           set((state) => ({
-            districtsByCityId: { ...state.districtsByCityId, [city.id]: districts },
+            districtsByCityId: districts.length
+              ? { ...state.districtsByCityId, [city.id]: districts }
+              : state.districtsByCityId,
             districtsLoadingId: null,
           }))
           return districts
-        } catch {
+        } catch (error) {
+          console.warn('Failed to load districts', city.id, error)
           set({ districtsLoadingId: null })
           return []
         }
@@ -177,6 +178,21 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
     }),
     {
       name: 'maptrip-google-locations',
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as {
+          countries?: LocationTreeNode[] | null
+          citiesByCountryId?: Record<string, LocationTreeNode[]>
+          districtsByCityId?: Record<string, LocationTreeNode[]>
+          reverseGeocodeCache?: Record<string, ReverseGeocodeResult>
+        }
+        return {
+          countries: state.countries ?? null,
+          citiesByCountryId: state.citiesByCountryId ?? {},
+          districtsByCityId: {},
+          reverseGeocodeCache: state.reverseGeocodeCache ?? {},
+        }
+      },
       partialize: (state) => ({
         countries: state.countries,
         citiesByCountryId: state.citiesByCountryId,
