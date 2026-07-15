@@ -58,4 +58,4 @@ export function districtKeysForCoords(coords: Array<{ lat: number; lon: number }
 export const DISTRICT_FILL_RADIUS_M = 750
 
 export const DISTRICT_BORDER_CSS = '#ff1493'
-export const DISTRICT_BORDER_WIDTH = 1.5
+export const DISTRICT_BORDER_WIDTH = 3

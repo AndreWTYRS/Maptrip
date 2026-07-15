@@ -5,6 +5,7 @@ import {
   Cartesian3,
   Cartographic,
   Color,
+  HeightReference,
   Ion,
   LabelStyle,
   Math as CesiumMath,
@@ -33,7 +34,7 @@ import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 const MIN_ZOOM_DISTANCE = 30
 const MAX_ZOOM_DISTANCE = 40_000_000
 const INITIAL_ALTITUDE = 15_000_000
-const DISTRICT_BORDER_COLOR = Color.fromCssColorString(DISTRICT_BORDER_CSS).withAlpha(0.92)
+const DISTRICT_BORDER_COLOR = Color.fromCssColorString(DISTRICT_BORDER_CSS)
 
 interface GlobeViewerProps {
   className?: string
@@ -353,24 +354,39 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       viewer.entities.remove(entity)
     }
 
-    if (countryCode !== 'KR' || !districtHexIdsToOutline.length) return
+    if (!districtHexIdsToOutline.length) return
     if (zoomLevel !== 'city' && zoomLevel !== 'district') return
+
+    const isKrSelection =
+      activeDistrictCityId?.startsWith('kr-') ||
+      countryCode === 'KR' ||
+      Boolean(activeDistrictHexIds?.length)
+    if (!isKrSelection) return
 
     for (const hexId of districtHexIdsToOutline) {
       const boundary = cellToBoundary(hexId, true)
-      const ring = [...boundary, boundary[0]]
 
       viewer.entities.add({
         id: `district-boundary-${hexId}`,
-        polyline: {
-          positions: Cartesian3.fromDegreesArray(ring.flat()),
-          width: DISTRICT_BORDER_WIDTH,
-          material: DISTRICT_BORDER_COLOR,
-          clampToGround: true,
+        polygon: {
+          hierarchy: Cartesian3.fromDegreesArray(boundary.flat()),
+          material: Color.TRANSPARENT,
+          outline: true,
+          outlineColor: DISTRICT_BORDER_COLOR,
+          outlineWidth: DISTRICT_BORDER_WIDTH,
+          height: 0,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
         },
       })
     }
-  }, [viewerReady, countryCode, zoomLevel, districtHexIdsToOutline])
+  }, [
+    viewerReady,
+    countryCode,
+    zoomLevel,
+    districtHexIdsToOutline,
+    activeDistrictCityId,
+    activeDistrictHexIds,
+  ])
 
   useEffect(() => {
     const viewer = viewerRef.current
