@@ -4,7 +4,16 @@ export const KR_H3_RESOLUTION = 7
 
 const districtCache = new Map<string, LocationTreeNode[]>()
 
-type CompactDistrict = [hexId: string, lat: number, lon: number, guCode: string, guName: string]
+type CompactDistrict =
+  | [hexId: string, lat: number, lon: number, guCode: string, guName: string]
+  | [
+      hexId: string,
+      lat: number,
+      lon: number,
+      guCode: string,
+      guName: string,
+      guNameEn: string,
+    ]
 
 interface KrDistrictFile {
   cityId: string
@@ -14,10 +23,13 @@ interface KrDistrictFile {
 }
 
 function compactToNode(tuple: CompactDistrict): LocationTreeNode {
-  const [hexId, lat, lon, , guName] = tuple
+  const [hexId, lat, lon, , guName, guNameEn] = tuple
+  const labelEn = guNameEn ?? guName
   return {
     id: `kr-hex-${hexId}`,
-    label: guName,
+    label: labelEn,
+    labelOriginal: guName,
+    labelEn,
     type: 'district',
     lat,
     lon,

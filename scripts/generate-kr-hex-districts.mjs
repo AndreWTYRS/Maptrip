@@ -127,6 +127,7 @@ function districtNodesForCity(city, sigunguFeatures) {
 
   for (const sigungu of sigunguFeatures) {
     const guName = sigungu.properties.name
+    const guNameEn = sigungu.properties.name_eng || guName
     const guCode = String(sigungu.properties.code)
 
     for (const hexId of hexCellsForFeature(sigungu.geometry)) {
@@ -134,8 +135,8 @@ function districtNodesForCity(city, sigunguFeatures) {
       seen.add(hexId)
 
       const [lat, lon] = cellToLatLng(hexId)
-      // Compact tuple: [hexId, lat, lon, guCode, guName]
-      districts.push([hexId, lat, lon, guCode, guName])
+      // Compact tuple: [hexId, lat, lon, guCode, guName, guNameEn]
+      districts.push([hexId, lat, lon, guCode, guName, guNameEn])
     }
   }
 

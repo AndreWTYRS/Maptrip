@@ -4,16 +4,19 @@ import { useGlobeStore } from '../store/globeStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { districtKeyForNode } from '../config/districtsByCity/loadDistricts'
+import { useLocationPreferencesStore } from '../store/locationPreferencesStore'
+import { getLocationLabel } from '../utils/locationLabel'
 
 interface ListItemProps {
   node: LocationTreeNode
   selectedId: string | null
   revealedDistricts: Set<string>
   subtitle?: string
+  displayLabel: string
   onSelect: (node: LocationTreeNode) => void
 }
 
-function ListItem({ node, selectedId, revealedDistricts, subtitle, onSelect }: ListItemProps) {
+function ListItem({ node, selectedId, revealedDistricts, subtitle, displayLabel, onSelect }: ListItemProps) {
   const isRevealed =
     node.type === 'district' && revealedDistricts.has(districtKeyForNode(node))
 
@@ -32,7 +35,7 @@ function ListItem({ node, selectedId, revealedDistricts, subtitle, onSelect }: L
           {node.type}
         </span>
         <span className="location-tree__label-text">
-          <span className="location-tree__label-name">{node.label}</span>
+          <span className="location-tree__label-name">{displayLabel}</span>
           {subtitle && <span className="location-tree__label-path">{subtitle}</span>}
         </span>
         {isRevealed && <span className="location-tree__revealed" title="Has points" />}
@@ -59,6 +62,10 @@ export function LocationTreeSidebar() {
   const loadCities = useGoogleLocationStore((s) => s.loadCities)
   const loadDistricts = useGoogleLocationStore((s) => s.loadDistricts)
   const searchLocations = useGoogleLocationStore((s) => s.searchLocations)
+  const districtLabelLocale = useLocationPreferencesStore((s) => s.districtLabelLocale)
+  const setDistrictLabelLocale = useLocationPreferencesStore((s) => s.setDistrictLabelLocale)
+
+  const labelForNode = (node: LocationTreeNode) => getLocationLabel(node, districtLabelLocale)
 
   const [selectedCountry, setSelectedCountry] = useState<LocationTreeNode | null>(null)
   const [selectedCity, setSelectedCity] = useState<LocationTreeNode | null>(null)
@@ -184,7 +191,20 @@ export function LocationTreeSidebar() {
 
   return (
     <aside className="location-tree" aria-label="Countries, cities, and districts">
-      <h2 className="location-tree__title">Locations</h2>
+      <div className="location-tree__header">
+        <h2 className="location-tree__title">Locations</h2>
+        <select
+          className="location-tree__locale"
+          value={districtLabelLocale}
+          onChange={(event) =>
+            setDistrictLabelLocale(event.target.value as 'original' | 'en')
+          }
+          aria-label="District label language"
+        >
+          <option value="original">Original</option>
+          <option value="en">English</option>
+        </select>
+      </div>
       <div className="location-tree__search-wrap">
         <input
           type="search"
@@ -210,6 +230,7 @@ export function LocationTreeSidebar() {
             <ListItem
               key={node.id}
               node={node}
+              displayLabel={labelForNode(node)}
               selectedId={selectedLocationId}
               revealedDistricts={revealedDistricts}
               onSelect={handleSearchSelect}
@@ -220,6 +241,7 @@ export function LocationTreeSidebar() {
             <ListItem
               key={country.id}
               node={country}
+              displayLabel={labelForNode(country)}
               selectedId={selectedLocationId}
               revealedDistricts={revealedDistricts}
               onSelect={(node) => void handleSelectCountry(node)}
@@ -230,6 +252,7 @@ export function LocationTreeSidebar() {
             <ListItem
               key={city.id}
               node={city}
+              displayLabel={labelForNode(city)}
               selectedId={selectedLocationId}
               revealedDistricts={revealedDistricts}
               onSelect={(node) => void handleSelectCity(node)}
@@ -240,6 +263,7 @@ export function LocationTreeSidebar() {
             <ListItem
               key={district.id}
               node={district}
+              displayLabel={labelForNode(district)}
               selectedId={selectedLocationId}
               revealedDistricts={revealedDistricts}
               onSelect={handleSelectDistrict}
