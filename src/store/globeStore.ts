@@ -22,6 +22,8 @@ interface GlobeState {
   centerLon: number
   zoomLevel: ZoomLevel
   selectedLocationId: string | null
+  /** City whose hex district borders are drawn on the globe (South Korea). */
+  activeDistrictCityId: string | null
   flyToLevelRequest: FlyToLevelRequest | null
   flyToLocationRequest: FlyToLocationRequest | null
   setProviderId: (id: MapProviderId) => void
@@ -30,6 +32,7 @@ interface GlobeState {
   setCenter: (lat: number, lon: number) => void
   setZoomLevel: (level: ZoomLevel) => void
   setSelectedLocationId: (id: string | null) => void
+  setActiveDistrictCityId: (id: string | null) => void
   requestFlyToLevel: (level: ZoomLevel) => void
   requestFlyToLocation: (lat: number, lon: number, level: ZoomLevel) => void
   clearFlyToRequest: () => void
@@ -45,6 +48,7 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   centerLon: 37.6173,
   zoomLevel: 'world',
   selectedLocationId: null,
+  activeDistrictCityId: null,
   flyToLevelRequest: null,
   flyToLocationRequest: null,
   setProviderId: (providerId) => set({ providerId }),
@@ -53,6 +57,7 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   setCenter: (centerLat, centerLon) => set({ centerLat, centerLon }),
   setZoomLevel: (zoomLevel) => set({ zoomLevel }),
   setSelectedLocationId: (selectedLocationId) => set({ selectedLocationId }),
+  setActiveDistrictCityId: (activeDistrictCityId) => set({ activeDistrictCityId }),
   requestFlyToLevel: (level) =>
     set({ flyToLevelRequest: { level, token: ++flyToToken } }),
   requestFlyToLocation: (lat, lon, level) =>

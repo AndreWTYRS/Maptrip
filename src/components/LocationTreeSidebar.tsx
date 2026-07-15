@@ -3,7 +3,7 @@ import { LOCATION_ZOOM, type LocationTreeNode } from '../config/locationTree'
 import { useGlobeStore } from '../store/globeStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
-import { districtKeyForNode } from '../config/districtsByCity/loadDistricts'
+import { aggregateDistrictsByGu, isDistrictRevealed } from '../config/districtsByCity/loadDistricts'
 import { useLocationPreferencesStore } from '../store/locationPreferencesStore'
 import { getLocationLabel } from '../utils/locationLabel'
 
@@ -17,8 +17,7 @@ interface ListItemProps {
 }
 
 function ListItem({ node, selectedId, revealedDistricts, subtitle, displayLabel, onSelect }: ListItemProps) {
-  const isRevealed =
-    node.type === 'district' && revealedDistricts.has(districtKeyForNode(node))
+  const isRevealed = isDistrictRevealed(node, revealedDistricts)
 
   return (
     <li className="location-tree__item">
@@ -48,6 +47,7 @@ export function LocationTreeSidebar() {
   const requestFlyToLocation = useGlobeStore((s) => s.requestFlyToLocation)
   const selectedLocationId = useGlobeStore((s) => s.selectedLocationId)
   const setSelectedLocationId = useGlobeStore((s) => s.setSelectedLocationId)
+  const setActiveDistrictCityId = useGlobeStore((s) => s.setActiveDistrictCityId)
   const points = useAnnotationsStore((s) => s.points)
   const revealedDistricts = new Set(points.map((p) => p.districtKey))
 
@@ -97,7 +97,11 @@ export function LocationTreeSidebar() {
   }, [isSearching, searchQuery, searchLocations])
 
   const visibleCities = selectedCountry ? (citiesByCountryId[selectedCountry.id] ?? []) : []
-  const visibleDistricts = selectedCity ? (districtsByCityId[selectedCity.id] ?? []) : []
+  const visibleDistricts = useMemo(() => {
+    if (!selectedCity) return []
+    const districts = districtsByCityId[selectedCity.id] ?? []
+    return aggregateDistrictsByGu(districts)
+  }, [districtsByCityId, selectedCity])
 
   const sectionTitle = isSearching
     ? 'Search results'
@@ -110,6 +114,7 @@ export function LocationTreeSidebar() {
   async function handleSelectCountry(country: LocationTreeNode) {
     setSelectedCountry(country)
     setSelectedCity(null)
+    setActiveDistrictCityId(null)
     setSelectedLocationId(country.id)
     requestFlyToLocation(country.lat, country.lon, LOCATION_ZOOM.country)
     await loadCities(country, country.countryCode)
@@ -118,6 +123,7 @@ export function LocationTreeSidebar() {
   async function handleSelectCity(city: LocationTreeNode) {
     if (!selectedCountry) return
     setSelectedCity(city)
+    setActiveDistrictCityId(city.id)
     setSelectedLocationId(city.id)
     requestFlyToLocation(city.lat, city.lon, LOCATION_ZOOM.city)
     await loadDistricts(city, selectedCountry)
@@ -136,12 +142,14 @@ export function LocationTreeSidebar() {
     if (node.type === 'country') {
       setSelectedCountry(node)
       setSelectedCity(null)
+      setActiveDistrictCityId(null)
       void loadCities(node, node.countryCode)
       return
     }
 
     if (node.type === 'city') {
       setSelectedCity(node)
+      setActiveDistrictCityId(node.id)
       if (selectedCountry) void loadDistricts(node, selectedCountry)
       return
     }
@@ -152,6 +160,7 @@ export function LocationTreeSidebar() {
   function handleBack() {
     if (selectedCity) {
       setSelectedCity(null)
+      setActiveDistrictCityId(null)
       return
     }
     if (selectedCountry) {

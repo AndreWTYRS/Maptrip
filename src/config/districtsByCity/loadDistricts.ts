@@ -23,7 +23,7 @@ interface KrDistrictFile {
 }
 
 function compactToNode(tuple: CompactDistrict): LocationTreeNode {
-  const [hexId, lat, lon, , guName, guNameEn] = tuple
+  const [hexId, lat, lon, guCode, guName, guNameEn] = tuple
   const labelEn = guNameEn ?? guName
   return {
     id: `kr-hex-${hexId}`,
@@ -34,8 +34,51 @@ function compactToNode(tuple: CompactDistrict): LocationTreeNode {
     lat,
     lon,
     hexId,
+    guCode,
     countryCode: 'KR',
   }
+}
+
+/** Collapse H3 hex cells into one entry per official sigungu (gu). */
+export function aggregateDistrictsByGu(districts: LocationTreeNode[]): LocationTreeNode[] {
+  const hexDistricts = districts.filter((district) => district.hexId)
+  const otherDistricts = districts.filter((district) => !district.hexId)
+  if (!hexDistricts.length) return districts
+
+  const groups = new Map<string, LocationTreeNode[]>()
+
+  for (const district of hexDistricts) {
+    const key = district.guCode ?? district.labelOriginal ?? district.label
+    const bucket = groups.get(key)
+    if (bucket) bucket.push(district)
+    else groups.set(key, [district])
+  }
+
+  const aggregated = [...groups.values()].map((hexes) => {
+    const first = hexes[0]
+    const lat = hexes.reduce((sum, hex) => sum + hex.lat, 0) / hexes.length
+    const lon = hexes.reduce((sum, hex) => sum + hex.lon, 0) / hexes.length
+    const guCode = first.guCode ?? first.labelOriginal ?? first.label
+
+    return {
+      id: `kr-gu-${guCode}`,
+      label: first.label,
+      labelOriginal: first.labelOriginal,
+      labelEn: first.labelEn,
+      type: 'district' as const,
+      lat,
+      lon,
+      guCode: first.guCode,
+      hexIds: hexes.map((hex) => hex.hexId!),
+      countryCode: first.countryCode,
+    }
+  })
+
+  return [...aggregated, ...otherDistricts].sort((a, b) => {
+    const labelA = a.labelOriginal ?? a.label
+    const labelB = b.labelOriginal ?? b.label
+    return labelA.localeCompare(labelB, 'ko')
+  })
 }
 
 export function resolveCountryCode(country?: LocationTreeNode): string | undefined {
@@ -77,5 +120,12 @@ export async function loadDistrictsForCity(
 }
 
 export function districtKeyForNode(node: LocationTreeNode): string {
-  return node.hexId ?? `${Math.floor(node.lat / 0.011)}:${Math.floor(node.lon / 0.016)}`
+  if (node.hexId) return node.hexId
+  return `${Math.floor(node.lat / 0.011)}:${Math.floor(node.lon / 0.016)}`
+}
+
+export function isDistrictRevealed(node: LocationTreeNode, revealedDistricts: Set<string>): boolean {
+  if (node.type !== 'district') return false
+  if (node.hexIds?.some((hexId) => revealedDistricts.has(hexId))) return true
+  return revealedDistricts.has(districtKeyForNode(node))
 }
