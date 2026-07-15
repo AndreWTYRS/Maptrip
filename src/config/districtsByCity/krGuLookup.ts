@@ -13,21 +13,29 @@ export interface KrGuBoundary {
 let guLookupCache: KrGuBoundary[] | null = null
 let guLookupPromise: Promise<KrGuBoundary[]> | null = null
 
-export function isValidLatLonRing(ring: LatLonRing): boolean {
-  if (!ring || ring.length < 4) return false
-  const uniq = new Set(ring.map(([lat, lon]) => `${lat.toFixed(5)},${lon.toFixed(5)}`))
+function ringIsValid(ring: unknown): ring is LatLonRing {
+  if (!Array.isArray(ring) || ring.length < 4) return false
+
+  const uniq = new Set<string>()
+  for (const point of ring) {
+    if (!Array.isArray(point) || point.length < 2) return false
+    const [lat, lon] = point
+    if (typeof lat !== 'number' || typeof lon !== 'number') return false
+    uniq.add(`${lat.toFixed(5)},${lon.toFixed(5)}`)
+  }
+
   return uniq.size >= 3
 }
 
 export function sanitizeRings(rings: LatLonRing[] | undefined): LatLonRing[] {
-  return (rings ?? []).filter(isValidLatLonRing)
+  return (rings ?? []).filter(ringIsValid)
 }
 
 function pointInRing(lon: number, lat: number, ring: LatLonRing): boolean {
-  if (!isValidLatLonRing(ring)) return false
+  if (!ringIsValid(ring)) return false
 
   let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i--) {
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [yi, xi] = ring[i]
     const [yj, xj] = ring[j]
     const intersect =
@@ -37,7 +45,7 @@ function pointInRing(lon: number, lat: number, ring: LatLonRing): boolean {
   return inside
 }
 
-export function pointInGuRings(lon: number, lat: number, rings: LatLonRing[]): boolean {
+export function pointInGuRings(lon: number, lat: number, rings: LatLonRing[] | undefined): boolean {
   return sanitizeRings(rings).some((ring) => pointInRing(lon, lat, ring))
 }
 
@@ -98,4 +106,8 @@ export function getKrGuById(id: string): KrGuBoundary | undefined {
 
 export function isKrGuDistrictKey(key: string): boolean {
   return key.startsWith('kr-gu-')
+}
+
+export function ringIsRenderable(ring: unknown): ring is LatLonRing {
+  return ringIsValid(ring)
 }

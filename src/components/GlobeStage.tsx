@@ -16,7 +16,7 @@ export function GlobeStage({ children }: GlobeStageProps) {
   const centerLon = useGlobeStore((s) => s.centerLon)
   const countryCode = useGlobeStore((s) => s.countryCode)
   const isInputRevealed = useRevealStore((s) => s.isRevealed)
-  const points = useAnnotationsStore((s) => s.points)
+  const points = useAnnotationsStore((s) => s.points) ?? []
   const revealedDistricts = new Set(points.map((p) => p.districtKey))
   const [, setKrLookupReady] = useState(0)
 

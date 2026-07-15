@@ -20,7 +20,7 @@ import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
-import { getKrGuById, isKrGuDistrictKey, isValidLatLonRing, loadKrGuLookup, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
+import { getKrGuById, isKrGuDistrictKey, loadKrGuLookup, ringIsRenderable, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
 import {
@@ -47,7 +47,7 @@ function addDistrictPolygon(
     outlineWidth: number
   },
 ) {
-  if (!isValidLatLonRing(ring)) return
+  if (!ringIsRenderable(ring)) return
 
   try {
     viewer.entities.add({
@@ -112,7 +112,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     return districts
   }, [activeDistrictCityId, activeDistrictId, districtsByCityId])
 
-  const points = useAnnotationsStore((s) => s.points)
+  const points = useAnnotationsStore((s) => s.points) ?? []
   const routes = useAnnotationsStore((s) => s.routes)
   const routeDraft = useAnnotationsStore((s) => s.routeDraft)
   const annotationMode = useAnnotationsStore((s) => s.annotationMode)
