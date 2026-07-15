@@ -2,10 +2,10 @@ import {
   ImageryProvider,
   Math as CesiumMath,
   Rectangle,
+  WebMercatorProjection,
   type ImageryTypes,
   type Request,
 } from 'cesium'
-import type { ImageryTone } from '../config/mapColors'
 import { pointInRing, type LatLonRing } from '../config/districtsByCity/krGuLookup'
 
 interface RingBounds {
@@ -68,63 +68,72 @@ function getImageSize(image: ImageryTypes): { width: number; height: number } {
   return { width: 256, height: 256 }
 }
 
-function toneNeedsProcessing(tone: ImageryTone): boolean {
-  return tone.saturation < 0.999 || Math.abs(tone.brightness - 1) > 0.001
+function getTransparentTile(width: number, height: number): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  return canvas
 }
 
-function applyToneChannel(value: number, gray: number, tone: ImageryTone): number {
-  const adjusted = (gray + (value - gray) * tone.saturation) * tone.brightness
-  return Math.max(0, Math.min(255, adjusted))
-}
-
-function processTile(
-  image: ImageryTypes,
+/** Map tile pixel to lat/lon using Web Mercator (EPSG:3857) — linear lat breaks mask edges. */
+function pixelToLatLon(
+  px: number,
+  py: number,
+  width: number,
+  height: number,
   tileRect: Rectangle,
-  relevant: RingBounds[],
-  tone: ImageryTone,
-): HTMLCanvasElement {
-  const { width, height } = getImageSize(image)
+): { lat: number; lon: number } {
+  const lon = CesiumMath.toDegrees(
+    CesiumMath.lerp(tileRect.west, tileRect.east, (px + 0.5) / width),
+  )
+
+  const southAngle = WebMercatorProjection.geodeticLatitudeToMercatorAngle(tileRect.south)
+  const northAngle = WebMercatorProjection.geodeticLatitudeToMercatorAngle(tileRect.north)
+  const mercatorAngle = CesiumMath.lerp(southAngle, northAngle, (py + 0.5) / height)
+  const lat = CesiumMath.toDegrees(
+    WebMercatorProjection.mercatorAngleToGeodeticLatitude(mercatorAngle),
+  )
+
+  return { lat, lon }
+}
+
+function drawTileToCanvas(image: ImageryTypes, width: number, height: number): {
+  canvas: HTMLCanvasElement
+  ctx: CanvasRenderingContext2D | null
+} {
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')
-  if (!ctx) return canvas
+  if (!ctx) return { canvas, ctx: null }
 
-  // Cesium fetches URL tiles with flipY; match that orientation on returned canvases.
+  // Cesium fetches URL tiles with flipY; match that on returned canvases.
   ctx.translate(0, height)
   ctx.scale(1, -1)
   ctx.drawImage(image as CanvasImageSource, 0, 0, width, height)
 
+  return { canvas, ctx }
+}
+
+function maskTile(
+  image: ImageryTypes,
+  tileRect: Rectangle,
+  relevant: RingBounds[],
+): HTMLCanvasElement {
+  const { width, height } = getImageSize(image)
+  const { canvas, ctx } = drawTileToCanvas(image, width, height)
+  if (!ctx) return canvas
+
   const imageData = ctx.getImageData(0, 0, width, height)
   const data = imageData.data
 
-  const west = CesiumMath.toDegrees(tileRect.west)
-  const south = CesiumMath.toDegrees(tileRect.south)
-  const east = CesiumMath.toDegrees(tileRect.east)
-  const north = CesiumMath.toDegrees(tileRect.north)
-  const lonSpan = east - west
-  const latSpan = north - south
-  const restoreColor = relevant.length > 0
-
   for (let py = 0; py < height; py++) {
-    const lat = south + ((py + 0.5) / height) * latSpan
-
     for (let px = 0; px < width; px++) {
-      const lon = west + ((px + 0.5) / width) * lonSpan
-      const offset = (py * width + px) * 4
+      const { lat, lon } = pixelToLatLon(px, py, width, height, tileRect)
+      const inside = relevant.some(({ ring }) => pointInRing(lon, lat, ring))
+      if (inside) continue
 
-      if (restoreColor) {
-        const inside = relevant.some(({ ring }) => pointInRing(lon, lat, ring))
-        if (inside) continue
-      }
-
-      const r = data[offset]
-      const g = data[offset + 1]
-      const b = data[offset + 2]
-      const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b
-      data[offset] = applyToneChannel(r, gray, tone)
-      data[offset + 1] = applyToneChannel(g, gray, tone)
-      data[offset + 2] = applyToneChannel(b, gray, tone)
+      data[(py * width + px) * 4 + 3] = 0
     }
   }
 
@@ -148,28 +157,26 @@ export function circleAsRing(lat: number, lon: number, radiusM: number, segments
 }
 
 /**
- * Single imagery provider: desaturates the map and restores full color inside revealed polygons.
- * Avoids two-layer parallax that makes district edges shift while panning.
+ * Color overlay: full-color tiles inside revealed polygons, transparent elsewhere.
+ * Base layer stays native OSM with GPU desaturation so geography stays locked while panning.
  */
-export function createRevealAwareImageryProvider(
+export function createPolygonMaskedImageryProvider(
   base: ImageryProvider,
   getRings: () => LatLonRing[],
-  getTone: () => ImageryTone,
 ): ImageryProvider {
   const provider = Object.create(base) as ImageryProvider
   const baseRequestImage = base.requestImage.bind(base)
   let boundsCache: RingBounds[] = []
   let boundsVersion = -1
 
-  provider.requestImage = (x: number, y: number, level: number, request?: Request) => {
-    const tone = getTone()
-    const rings = getRings()
-    const needsTone = toneNeedsProcessing(tone)
-    const hasReveal = needsTone && rings.length > 0
+  Object.defineProperty(provider, 'hasAlphaChannel', {
+    configurable: true,
+    get: () => true,
+  })
 
-    if (!needsTone) {
-      return baseRequestImage(x, y, level, request)
-    }
+  provider.requestImage = (x: number, y: number, level: number, request?: Request) => {
+    const rings = getRings()
+    if (!rings.length) return undefined
 
     if (boundsVersion !== tileCacheVersion) {
       boundsCache = rings.map(ringBounds)
@@ -177,9 +184,15 @@ export function createRevealAwareImageryProvider(
     }
 
     const tileRect = base.tilingScheme.tileXYToRectangle(x, y, level)
-    const relevant = hasReveal ? ringsForTile(tileRect, boundsCache) : []
-    const toneKey = `${tone.saturation.toFixed(3)}:${tone.brightness.toFixed(3)}`
-    const cacheKey = `${tileCacheVersion}:${toneKey}:${level}:${x}:${y}`
+    const tileWidth = base.tileWidth
+    const tileHeight = base.tileHeight
+    const relevant = ringsForTile(tileRect, boundsCache)
+
+    if (!relevant.length) {
+      return Promise.resolve(getTransparentTile(tileWidth, tileHeight))
+    }
+
+    const cacheKey = `${tileCacheVersion}:${level}:${x}:${y}`
     const cached = tileCache.get(cacheKey)
     if (cached) return Promise.resolve(cached)
 
@@ -188,16 +201,9 @@ export function createRevealAwareImageryProvider(
 
     return Promise.resolve(result).then((image) => {
       if (!image) return image
-
-      if (!relevant.length) {
-        const processed = processTile(image, tileRect, [], tone)
-        rememberTile(cacheKey, processed)
-        return processed
-      }
-
-      const processed = processTile(image, tileRect, relevant, tone)
-      rememberTile(cacheKey, processed)
-      return processed
+      const masked = maskTile(image, tileRect, relevant)
+      rememberTile(cacheKey, masked)
+      return masked
     })
   }
 
