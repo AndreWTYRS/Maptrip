@@ -90,7 +90,11 @@ function processTile(
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
+  // Cesium fetches URL tiles with flipY; match that orientation on returned canvases.
+  ctx.translate(0, height)
+  ctx.scale(1, -1)
   ctx.drawImage(image as CanvasImageSource, 0, 0, width, height)
+
   const imageData = ctx.getImageData(0, 0, width, height)
   const data = imageData.data
 
@@ -103,7 +107,7 @@ function processTile(
   const restoreColor = relevant.length > 0
 
   for (let py = 0; py < height; py++) {
-    const lat = north - ((py + 0.5) / height) * latSpan
+    const lat = south + ((py + 0.5) / height) * latSpan
 
     for (let px = 0; px < width; px++) {
       const lon = west + ((px + 0.5) / width) * lonSpan
