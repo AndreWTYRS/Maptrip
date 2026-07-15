@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CameraEventType,
   Cartesian2,
@@ -22,14 +22,18 @@ import { useRevealStore } from '../store/revealStore'
 import { cellToBoundary } from 'h3-js'
 import { countryFromCoords } from '../utils/countryFromCoords'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
-import { DISTRICT_FILL_RADIUS_M, isH3DistrictKey } from '../utils/districtKey'
+import {
+  DISTRICT_BORDER_CSS,
+  DISTRICT_BORDER_WIDTH,
+  DISTRICT_FILL_RADIUS_M,
+  isH3DistrictKey,
+} from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
 const MAX_ZOOM_DISTANCE = 40_000_000
 const INITIAL_ALTITUDE = 15_000_000
-const DISTRICT_BORDER_COLOR = Color.fromCssColorString('#9aa3b2').withAlpha(0.65)
-const DISTRICT_BORDER_WIDTH = 1
+const DISTRICT_BORDER_COLOR = Color.fromCssColorString(DISTRICT_BORDER_CSS).withAlpha(0.92)
 
 interface GlobeViewerProps {
   className?: string
@@ -66,8 +70,16 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const countryCode = useGlobeStore((s) => s.countryCode)
   const zoomLevel = useGlobeStore((s) => s.zoomLevel)
   const activeDistrictCityId = useGlobeStore((s) => s.activeDistrictCityId)
+  const activeDistrictHexIds = useGlobeStore((s) => s.activeDistrictHexIds)
 
   const districtsByCityId = useGoogleLocationStore((s) => s.districtsByCityId)
+
+  const districtHexIdsToOutline = useMemo(() => {
+    if (activeDistrictHexIds?.length) return activeDistrictHexIds
+    if (!activeDistrictCityId) return []
+    const districts = districtsByCityId[activeDistrictCityId] ?? []
+    return districts.flatMap((district) => (district.hexId ? [district.hexId] : []))
+  }, [activeDistrictCityId, activeDistrictHexIds, districtsByCityId])
 
   const points = useAnnotationsStore((s) => s.points)
   const routes = useAnnotationsStore((s) => s.routes)
@@ -229,7 +241,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
     const userId = user?.id
     const fillColor = Color.fromCssColorString('#638cff').withAlpha(0.38)
-    const outlineColor = Color.fromCssColorString('#9eb6ff').withAlpha(0.65)
+    const outlineColor = DISTRICT_BORDER_COLOR
 
     for (const point of points.filter((p) => !userId || p.userId === userId)) {
       const entityOptions: Parameters<Viewer['entities']['add']>[0] = {
@@ -341,18 +353,15 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       viewer.entities.remove(entity)
     }
 
-    if (countryCode !== 'KR' || !activeDistrictCityId) return
+    if (countryCode !== 'KR' || !districtHexIdsToOutline.length) return
     if (zoomLevel !== 'city' && zoomLevel !== 'district') return
 
-    const districts = districtsByCityId[activeDistrictCityId] ?? []
-    for (const district of districts) {
-      if (!district.hexId) continue
-
-      const boundary = cellToBoundary(district.hexId, true)
+    for (const hexId of districtHexIdsToOutline) {
+      const boundary = cellToBoundary(hexId, true)
       const ring = [...boundary, boundary[0]]
 
       viewer.entities.add({
-        id: `district-boundary-${district.hexId}`,
+        id: `district-boundary-${hexId}`,
         polyline: {
           positions: Cartesian3.fromDegreesArray(ring.flat()),
           width: DISTRICT_BORDER_WIDTH,
@@ -361,7 +370,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         },
       })
     }
-  }, [viewerReady, countryCode, zoomLevel, activeDistrictCityId, districtsByCityId])
+  }, [viewerReady, countryCode, zoomLevel, districtHexIdsToOutline])
 
   useEffect(() => {
     const viewer = viewerRef.current

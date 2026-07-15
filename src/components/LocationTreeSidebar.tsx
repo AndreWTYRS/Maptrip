@@ -48,6 +48,7 @@ export function LocationTreeSidebar() {
   const selectedLocationId = useGlobeStore((s) => s.selectedLocationId)
   const setSelectedLocationId = useGlobeStore((s) => s.setSelectedLocationId)
   const setActiveDistrictCityId = useGlobeStore((s) => s.setActiveDistrictCityId)
+  const setActiveDistrictHexIds = useGlobeStore((s) => s.setActiveDistrictHexIds)
   const points = useAnnotationsStore((s) => s.points)
   const revealedDistricts = new Set(points.map((p) => p.districtKey))
 
@@ -115,6 +116,7 @@ export function LocationTreeSidebar() {
     setSelectedCountry(country)
     setSelectedCity(null)
     setActiveDistrictCityId(null)
+    setActiveDistrictHexIds(null)
     setSelectedLocationId(country.id)
     requestFlyToLocation(country.lat, country.lon, LOCATION_ZOOM.country)
     await loadCities(country, country.countryCode)
@@ -124,6 +126,7 @@ export function LocationTreeSidebar() {
     if (!selectedCountry) return
     setSelectedCity(city)
     setActiveDistrictCityId(city.id)
+    setActiveDistrictHexIds(null)
     setSelectedLocationId(city.id)
     requestFlyToLocation(city.lat, city.lon, LOCATION_ZOOM.city)
     await loadDistricts(city, selectedCountry)
@@ -131,6 +134,8 @@ export function LocationTreeSidebar() {
 
   function handleSelectDistrict(node: LocationTreeNode) {
     setSelectedLocationId(node.id)
+    setActiveDistrictHexIds(node.hexIds ?? null)
+    if (selectedCity) setActiveDistrictCityId(selectedCity.id)
     requestFlyToLocation(node.lat, node.lon, LOCATION_ZOOM.district)
   }
 
@@ -143,6 +148,7 @@ export function LocationTreeSidebar() {
       setSelectedCountry(node)
       setSelectedCity(null)
       setActiveDistrictCityId(null)
+      setActiveDistrictHexIds(null)
       void loadCities(node, node.countryCode)
       return
     }
@@ -150,6 +156,7 @@ export function LocationTreeSidebar() {
     if (node.type === 'city') {
       setSelectedCity(node)
       setActiveDistrictCityId(node.id)
+      setActiveDistrictHexIds(null)
       if (selectedCountry) void loadDistricts(node, selectedCountry)
       return
     }
@@ -161,6 +168,7 @@ export function LocationTreeSidebar() {
     if (selectedCity) {
       setSelectedCity(null)
       setActiveDistrictCityId(null)
+      setActiveDistrictHexIds(null)
       return
     }
     if (selectedCountry) {

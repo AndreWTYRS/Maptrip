@@ -56,3 +56,6 @@ export function districtKeysForCoords(coords: Array<{ lat: number; lon: number }
 
 /** Matches ~district zoom viewport at 800 m camera height (non-H3 fallback) */
 export const DISTRICT_FILL_RADIUS_M = 750
+
+export const DISTRICT_BORDER_CSS = '#ff1493'
+export const DISTRICT_BORDER_WIDTH = 1.5
