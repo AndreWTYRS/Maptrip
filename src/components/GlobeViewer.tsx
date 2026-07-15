@@ -16,6 +16,8 @@ import {
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { getMapProvider } from '../providers/registry'
+import { circleAsRing, createPolygonMaskedImageryProvider } from '../providers/polygonMaskedImagery'
+import type { LatLonRing } from '../config/districtsByCity/krGuLookup'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
@@ -86,6 +88,10 @@ function pickCoords(viewer: Viewer, position: Cartesian2) {
 export function GlobeViewer({ className }: GlobeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<Viewer | null>(null)
+  const revealedRingsRef = useRef<LatLonRing[]>([])
+  const colorLayerRef = useRef<ReturnType<Viewer['imageryLayers']['addImageryProvider']> | null>(
+    null,
+  )
   const [viewerReady, setViewerReady] = useState(false)
   const [krBoundariesReady, setKrBoundariesReady] = useState(false)
 
@@ -128,6 +134,23 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     }
     return [...keys]
   }, [points, user])
+
+  const revealedRings = useMemo(() => {
+    const rings: LatLonRing[] = []
+    for (const districtKeyValue of revealedDistrictKeys) {
+      if (isKrGuDistrictKey(districtKeyValue)) {
+        const gu = getKrGuById(districtKeyValue)
+        if (gu?.rings.length) rings.push(...gu.rings)
+        continue
+      }
+
+      const samplePoint = points.find((point) => point.districtKey === districtKeyValue)
+      if (samplePoint) {
+        rings.push(circleAsRing(samplePoint.lat, samplePoint.lon, DISTRICT_FILL_RADIUS_M))
+      }
+    }
+    return rings
+  }, [revealedDistrictKeys, points, krBoundariesReady])
 
   useEffect(() => {
     const needsKr =
@@ -291,42 +314,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     }
 
     const userId = user?.id
-    const fillColor = Color.fromCssColorString('#638cff').withAlpha(0.38)
-    const outlineColor = DISTRICT_BORDER_COLOR
-
-    for (const districtKeyValue of revealedDistrictKeys) {
-      if (isKrGuDistrictKey(districtKeyValue)) {
-        const gu = getKrGuById(districtKeyValue)
-        const rings = gu?.rings ?? []
-        if (rings.length) {
-          for (const [ringIndex, ring] of rings.entries()) {
-            addDistrictPolygon(viewer, `ann-district-${districtKeyValue}-${ringIndex}`, ring, {
-              material: fillColor,
-              outlineColor,
-              outlineWidth: DISTRICT_BORDER_WIDTH,
-            })
-          }
-          continue
-        }
-      }
-
-      const samplePoint = points.find((point) => point.districtKey === districtKeyValue)
-      if (!samplePoint) continue
-
-      viewer.entities.add({
-        id: `ann-district-${districtKeyValue}`,
-        position: Cartesian3.fromDegrees(samplePoint.lon, samplePoint.lat),
-        ellipse: {
-          semiMajorAxis: DISTRICT_FILL_RADIUS_M,
-          semiMinorAxis: DISTRICT_FILL_RADIUS_M,
-          material: fillColor,
-          outline: true,
-          outlineColor,
-          outlineWidth: DISTRICT_BORDER_WIDTH,
-          height: 0,
-        },
-      })
-    }
 
     if (userId) {
       for (const point of points.filter((p) => p.userId === userId)) {
@@ -394,7 +381,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
     }
-  }, [viewerReady, user, points, routes, routeDraft, revealedDistrictKeys, krBoundariesReady])
+  }, [viewerReady, user, points, routes, routeDraft, krBoundariesReady])
 
   useEffect(() => {
     const viewer = viewerRef.current
@@ -446,6 +433,42 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     layer.saturation = tone.saturation
     layer.brightness = tone.brightness
   }, [viewerReady, zoomLevel])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !viewerReady) return
+
+    revealedRingsRef.current = revealedRings
+
+    const existing = colorLayerRef.current
+    if (existing) {
+      viewer.imageryLayers.remove(existing, true)
+      colorLayerRef.current = null
+    }
+
+    const showColorReveal = zoomLevel !== 'world' && revealedRings.length > 0
+    if (!showColorReveal) return
+
+    const activeViewer = viewer
+    let cancelled = false
+
+    async function addColorLayer() {
+      const base = await getMapProvider('osm').createImageryProvider()
+      if (cancelled) return
+
+      const masked = createPolygonMaskedImageryProvider(base, () => revealedRingsRef.current)
+      const layer = activeViewer.imageryLayers.addImageryProvider(masked)
+      layer.saturation = 1
+      layer.brightness = 1
+      colorLayerRef.current = layer
+    }
+
+    void addColorLayer()
+
+    return () => {
+      cancelled = true
+    }
+  }, [viewerReady, zoomLevel, revealedRings, krBoundariesReady])
 
   useEffect(() => {
     const viewer = viewerRef.current
