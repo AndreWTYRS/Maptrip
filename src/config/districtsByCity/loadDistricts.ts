@@ -1,5 +1,5 @@
 import type { LocationTreeNode } from '../locationTree/types'
-import { loadKrGuLookup, type KrGuBoundary } from './krGuLookup'
+import { loadKrGuLookup, sanitizeRings, type KrGuBoundary } from './krGuLookup'
 
 const districtCache = new Map<string, LocationTreeNode[]>()
 
@@ -29,7 +29,7 @@ function recordToNode(record: KrDistrictRecord): LocationTreeNode {
     lat: record.lat,
     lon: record.lon,
     guCode: record.guCode,
-    boundaryRings: record.rings,
+    boundaryRings: sanitizeRings(record.rings),
     countryCode: 'KR',
   }
 }
@@ -52,7 +52,9 @@ export async function loadDistrictsForCity(
   if (!hasKrHexDistricts(country, city)) return []
 
   const cached = districtCache.get(city.id)
-  if (cached?.length) return cached
+  if (cached?.length && cached.every((district) => (district.boundaryRings?.length ?? 0) > 0)) {
+    return cached
+  }
 
   await loadKrGuLookup()
 

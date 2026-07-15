@@ -66,6 +66,12 @@ function featureCentroid(geometry) {
   return { lon: lonSum / coords.length, lat: latSum / coords.length }
 }
 
+function isValidLonLatRing(lonLatRing) {
+  if (!lonLatRing || lonLatRing.length < 4) return false
+  const uniq = new Set(lonLatRing.map(([lon, lat]) => `${lon.toFixed(5)},${lat.toFixed(5)}`))
+  return uniq.size >= 3
+}
+
 function simplifyRing(lonLatRing, maxPoints = 72) {
   if (lonLatRing.length <= maxPoints) {
     return lonLatRing.map(([lon, lat]) => [lat, lon])
@@ -78,7 +84,10 @@ function ringsFromGeometry(geometry) {
   const rings = []
   const parts = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
   for (const part of parts) {
-    if (part[0]?.length >= 4) rings.push(simplifyRing(part[0]))
+    const outer = part[0]
+    if (!isValidLonLatRing(outer)) continue
+    const simplified = simplifyRing(outer)
+    if (simplified.length >= 4) rings.push(simplified)
   }
   return rings
 }
@@ -111,6 +120,7 @@ function districtFromSigungu(sigungu) {
   const guNameEn = sigungu.properties.name_eng || guName
   const centroid = featureCentroid(sigungu.geometry)
   const rings = ringsFromGeometry(sigungu.geometry)
+  if (!rings.length) return null
 
   return {
     id: `kr-gu-${guCode}`,
@@ -133,7 +143,7 @@ const objName = Object.keys(topo.objects)[0]
 const collection = feature(topo, topo.objects[objName])
 const sigunguFeatures = collection.features
 
-const guLookup = sigunguFeatures.map(districtFromSigungu)
+const guLookup = sigunguFeatures.map(districtFromSigungu).filter(Boolean)
 const guByCode = new Map(guLookup.map((gu) => [gu.guCode, gu]))
 
 const cities = JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8'))
@@ -146,6 +156,7 @@ for (const city of cities) {
   const matched = sigunguForCity(city, sigunguFeatures)
   const districts = matched
     .map((sigungu) => districtFromSigungu(sigungu))
+    .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
   if (!districts.length) {

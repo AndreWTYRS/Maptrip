@@ -121,11 +121,16 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
       loadDistricts: async (city, country) => {
         const cached = get().districtsByCityId[city.id]
-        if (cached?.length) return cached
+        const useKrHex = hasKrHexDistricts(country, city)
+        if (
+          cached?.length &&
+          (!useKrHex || cached.every((district) => (district.boundaryRings?.length ?? 0) > 0))
+        ) {
+          return cached
+        }
 
         set({ districtsLoadingId: city.id })
         try {
-          const useKrHex = hasKrHexDistricts(country, city)
           let districts = useKrHex ? await loadDistrictsForCity(city, country) : []
 
           if (!districts.length && !useKrHex) {
@@ -178,7 +183,7 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
     }),
     {
       name: 'maptrip-google-locations',
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as {
           countries?: LocationTreeNode[] | null
@@ -191,7 +196,7 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
           citiesByCountryId: state.citiesByCountryId ?? {},
           reverseGeocodeCache: state.reverseGeocodeCache ?? {},
         }
-        if (version < 3) {
+        if (version < 4) {
           return { ...base, districtsByCityId: {} }
         }
         return { ...base, districtsByCityId: state.districtsByCityId ?? {} }
@@ -199,7 +204,12 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
       partialize: (state) => ({
         countries: state.countries,
         citiesByCountryId: state.citiesByCountryId,
-        districtsByCityId: state.districtsByCityId,
+        districtsByCityId: Object.fromEntries(
+          Object.entries(state.districtsByCityId).map(([cityId, districts]) => [
+            cityId,
+            districts.map(({ boundaryRings: _rings, ...district }) => district),
+          ]),
+        ),
         reverseGeocodeCache: state.reverseGeocodeCache,
       }),
     },

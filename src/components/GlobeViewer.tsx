@@ -20,7 +20,7 @@ import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
-import { getKrGuById, isKrGuDistrictKey, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
+import { getKrGuById, isKrGuDistrictKey, isValidLatLonRing, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
 import {
@@ -35,6 +35,36 @@ const MAX_ZOOM_DISTANCE = 40_000_000
 const INITIAL_ALTITUDE = 15_000_000
 const DISTRICT_BORDER_COLOR = Color.fromCssColorString(DISTRICT_BORDER_CSS)
 const DISTRICT_OUTLINE_FILL = Color.fromCssColorString('#ffffff').withAlpha(0.01)
+
+function addDistrictPolygon(
+  viewer: Viewer,
+  id: string,
+  ring: Array<[number, number]>,
+  options: {
+    material: Color
+    outlineColor: Color
+    outlineWidth: number
+  },
+) {
+  if (!isValidLatLonRing(ring)) return
+
+  try {
+    viewer.entities.add({
+      id,
+      polygon: {
+        hierarchy: Cartesian3.fromDegreesArray(ringToCesiumDegrees(ring)),
+        material: options.material,
+        outline: true,
+        outlineColor: options.outlineColor,
+        outlineWidth: options.outlineWidth,
+        height: 0,
+        heightReference: HeightReference.CLAMP_TO_GROUND,
+      },
+    })
+  } catch (error) {
+    console.warn('Skipped invalid district polygon', id, error)
+  }
+}
 
 interface GlobeViewerProps {
   className?: string
@@ -66,8 +96,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const flyToLevelRequest = useGlobeStore((s) => s.flyToLevelRequest)
   const flyToLocationRequest = useGlobeStore((s) => s.flyToLocationRequest)
   const clearFlyToRequest = useGlobeStore((s) => s.clearFlyToRequest)
-  const centerLat = useGlobeStore((s) => s.centerLat)
-  const centerLon = useGlobeStore((s) => s.centerLon)
   const countryCode = useGlobeStore((s) => s.countryCode)
   const zoomLevel = useGlobeStore((s) => s.zoomLevel)
   const activeDistrictCityId = useGlobeStore((s) => s.activeDistrictCityId)
@@ -250,17 +278,10 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         const rings = gu?.rings ?? []
         if (rings.length) {
           for (const [ringIndex, ring] of rings.entries()) {
-            viewer.entities.add({
-              id: `ann-district-${point.id}-${ringIndex}`,
-              polygon: {
-                hierarchy: Cartesian3.fromDegreesArray(ringToCesiumDegrees(ring)),
-                material: fillColor,
-                outline: true,
-                outlineColor,
-                outlineWidth: 2,
-                height: 0,
-                heightReference: HeightReference.CLAMP_TO_GROUND,
-              },
+            addDistrictPolygon(viewer, `ann-district-${point.id}-${ringIndex}`, ring, {
+              material: fillColor,
+              outlineColor,
+              outlineWidth: 2,
             })
           }
           continue
@@ -377,17 +398,10 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       if (!rings?.length) continue
 
       for (const [ringIndex, ring] of rings.entries()) {
-        viewer.entities.add({
-          id: `district-boundary-${district.id}-${ringIndex}`,
-          polygon: {
-            hierarchy: Cartesian3.fromDegreesArray(ringToCesiumDegrees(ring)),
-            material: DISTRICT_OUTLINE_FILL,
-            outline: true,
-            outlineColor: DISTRICT_BORDER_COLOR,
-            outlineWidth: DISTRICT_BORDER_WIDTH,
-            height: 0,
-            heightReference: HeightReference.CLAMP_TO_GROUND,
-          },
+        addDistrictPolygon(viewer, `district-boundary-${district.id}-${ringIndex}`, ring, {
+          material: DISTRICT_OUTLINE_FILL,
+          outlineColor: DISTRICT_BORDER_COLOR,
+          outlineWidth: DISTRICT_BORDER_WIDTH,
         })
       }
     }
@@ -402,9 +416,16 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
   useEffect(() => {
     const viewer = viewerRef.current
-    if (!viewer) return
+    if (!viewer || !viewerReady) return
 
-    const target = flyToLocationRequest ?? (flyToLevelRequest ? { lat: centerLat, lon: centerLon, level: flyToLevelRequest.level } : null)
+    const levelTarget = flyToLevelRequest
+      ? {
+          lat: useGlobeStore.getState().centerLat,
+          lon: useGlobeStore.getState().centerLon,
+          level: flyToLevelRequest.level,
+        }
+      : null
+    const target = flyToLocationRequest ?? levelTarget
     if (!target) return
 
     const altitude = getAltitudeForLevel(target.level)
@@ -421,10 +442,9 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       cancel: () => clearFlyToRequest(),
     })
   }, [
+    viewerReady,
     flyToLevelRequest,
     flyToLocationRequest,
-    centerLat,
-    centerLon,
     clearFlyToRequest,
     recordAction,
     setAltitudeMeters,
