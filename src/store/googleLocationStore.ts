@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ISO_COUNTRY_CODES } from '../config/isoCountryCodes'
+import { loadCitiesForCountry } from '../config/citiesByCountry/loadCities'
 import type { LocationTreeNode } from '../config/locationTree/types'
 import {
   geocodeAllCountries,
@@ -10,7 +11,6 @@ import {
 } from '../services/googleGeocoding'
 import {
   autocompleteLocations,
-  searchCitiesInCountry,
   searchDistrictsInCity,
 } from '../services/googlePlaces'
 
@@ -91,8 +91,7 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
         set({ citiesLoadingId: country.id })
         try {
-          const code = regionCode ?? country.countryCode ?? country.id.slice(0, 2).toUpperCase()
-          const cities = await searchCitiesInCountry(country.label, code)
+          const cities = await loadCitiesForCountry(country, regionCode)
           set((state) => ({
             citiesByCountryId: { ...state.citiesByCountryId, [country.id]: cities },
             citiesLoadingId: null,
