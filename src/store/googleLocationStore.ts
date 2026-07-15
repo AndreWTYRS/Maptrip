@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { ISO_COUNTRY_CODES } from '../config/isoCountryCodes'
 import { hasGoogleMapsApiKey } from '../config/googleMaps'
 import { loadCitiesForCountry, loadCountriesFromOpenData } from '../config/citiesByCountry/loadCities'
-import { hasKrHexDistricts, loadDistrictsForCity } from '../config/districtsByCity/loadDistricts'
+import { hasKrHexDistricts, loadDistrictsForCity, attachBoundaryRings } from '../config/districtsByCity/loadDistricts'
 import type { LocationTreeNode } from '../config/locationTree/types'
 import {
   geocodeAllCountries,
@@ -122,11 +122,18 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
       loadDistricts: async (city, country) => {
         const cached = get().districtsByCityId[city.id]
         const useKrHex = hasKrHexDistricts(country, city)
-        if (
-          cached?.length &&
-          (!useKrHex || cached.every((district) => (district.boundaryRings?.length ?? 0) > 0))
-        ) {
-          return cached
+
+        if (cached?.length) {
+          if (!useKrHex) return cached
+
+          const ringsComplete = cached.every((district) => (district.boundaryRings?.length ?? 0) > 0)
+          if (ringsComplete) return cached
+
+          const enriched = await attachBoundaryRings(cached)
+          set((state) => ({
+            districtsByCityId: { ...state.districtsByCityId, [city.id]: enriched },
+          }))
+          return enriched
         }
 
         set({ districtsLoadingId: city.id })
@@ -138,6 +145,10 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
               lat: city.lat,
               lon: city.lon,
             })
+          }
+
+          if (useKrHex && districts.length) {
+            districts = await attachBoundaryRings(districts)
           }
 
           set((state) => ({

@@ -24,11 +24,18 @@ import {
   unionRectangleForRings,
 } from '../providers/polygonMaskedImagery'
 import type { LatLonRing } from '../config/districtsByCity/krGuLookup'
+import {
+  getKrGuById,
+  isKrGuDistrictKey,
+  loadKrGuLookup,
+  ringIsRenderable,
+  ringToCesiumDegrees,
+} from '../config/districtsByCity/krGuLookup'
+import { districtKeyForNode } from '../config/districtsByCity/loadDistricts'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
-import { getKrGuById, isKrGuDistrictKey, loadKrGuLookup, ringIsRenderable, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
 import {
@@ -182,12 +189,13 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   useEffect(() => {
     const needsKr =
       countryCode === 'KR' ||
+      Boolean(activeDistrictCityId?.startsWith('kr-')) ||
       revealedDistrictKeys.some((key) => isKrGuDistrictKey(key)) ||
       points.some((point) => isInSouthKorea(point.lat, point.lon))
     if (!needsKr) return
 
     void loadKrGuLookup().then(() => setKrBoundariesReady(true))
-  }, [countryCode, points, revealedDistrictKeys])
+  }, [countryCode, activeDistrictCityId, points, revealedDistrictKeys])
 
   useEffect(() => {
     const container = containerRef.current
@@ -430,9 +438,12 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     if (!isKrSelection) return
 
     for (const district of districtsToOutline) {
-      if (revealedDistrictSet.has(district.id)) continue
+      if (revealedDistrictSet.has(districtKeyForNode(district))) continue
 
-      const rings = district.boundaryRings
+      const rings =
+        district.boundaryRings?.length
+          ? district.boundaryRings
+          : getKrGuById(district.id)?.rings
       if (!rings?.length) continue
 
       for (const [ringIndex, ring] of rings.entries()) {
@@ -450,6 +461,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     activeDistrictCityId,
     activeDistrictId,
     revealedDistrictSet,
+    krBoundariesReady,
   ])
 
   useEffect(() => {
