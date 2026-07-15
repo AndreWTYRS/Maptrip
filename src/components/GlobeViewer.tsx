@@ -15,11 +15,11 @@ import {
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { getMapProvider } from '../providers/registry'
-import { reverseGeocode } from '../services/googleGeocoding'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
+import { countryFromCoords } from '../utils/countryFromCoords'
 import { DISTRICT_FILL_RADIUS_M } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
@@ -120,29 +120,17 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
     let lastHeading = viewer.camera.heading
     let lastHeight = viewer.camera.positionCartographic.height
-    let geocodeToken = 0
 
-    async function applyGoogleProvider() {
-      try {
-        const provider = getMapProvider('google')
-        const imagery = await provider.createImageryProvider()
-        viewer.imageryLayers.removeAll()
-        viewer.imageryLayers.addImageryProvider(imagery)
-        setProviderId('google')
-      } catch (error) {
-        console.error('Google Maps failed to load', error)
-      }
+    async function applyOsmProvider() {
+      const provider = getMapProvider('osm')
+      const imagery = await provider.createImageryProvider()
+      viewer.imageryLayers.removeAll()
+      viewer.imageryLayers.addImageryProvider(imagery)
+      setProviderId('osm')
     }
 
-    async function updateCountryFromCoords(lat: number, lon: number) {
-      const token = ++geocodeToken
-      const geocoded = await reverseGeocode(lat, lon)
-      if (token !== geocodeToken || !geocoded?.countryCode) return
-      setCountryCode(geocoded.countryCode)
-    }
-
-    void applyGoogleProvider()
-    void updateCountryFromCoords(55.7558, 37.6173)
+    void applyOsmProvider()
+    setCountryCode(countryFromCoords(55.7558, 37.6173))
 
     const removeMoveEnd = viewer.camera.moveEnd.addEventListener(() => {
       const carto = viewer.camera.positionCartographic
@@ -153,6 +141,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       setAltitudeMeters(height)
       setCenter(lat, lon)
       setZoomLevel(altitudeToZoomLevel(height))
+      setCountryCode(countryFromCoords(lat, lon))
 
       const headingDelta = Math.abs(viewer.camera.heading - lastHeading)
       const heightDelta = Math.abs(height - lastHeight)
@@ -162,8 +151,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
 
       lastHeading = viewer.camera.heading
       lastHeight = height
-
-      void updateCountryFromCoords(lat, lon)
     })
 
     return () => {

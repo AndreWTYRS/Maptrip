@@ -38,7 +38,7 @@ interface GlobeState {
 let flyToToken = 0
 
 export const useGlobeStore = create<GlobeState>((set) => ({
-  providerId: 'google',
+  providerId: 'osm',
   countryCode: null,
   altitudeMeters: 12_000_000,
   centerLat: 55.7558,

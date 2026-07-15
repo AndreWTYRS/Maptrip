@@ -1,8 +1,7 @@
 import type { MapProviderId } from '../providers/types'
 
-/** Google Maps is the sole map provider. */
-export const DEFAULT_PROVIDER: MapProviderId = 'google'
+export const DEFAULT_PROVIDER: MapProviderId = 'osm'
 
-export function resolveProviderForCountry(): MapProviderId {
+export function resolveProviderForCountry(_countryCode?: string | null): MapProviderId {
   return DEFAULT_PROVIDER
 }

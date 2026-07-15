@@ -1,6 +1,6 @@
 import type { ImageryProvider } from 'cesium'
 
-export type MapProviderId = 'google' | 'yandex' | 'osm'
+export type MapProviderId = 'osm'
 
 export interface MapProvider {
   id: MapProviderId
