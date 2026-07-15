@@ -1,932 +1,932 @@
 {
   "countryCode": "KR",
-  "h3Resolution": 7,
   "source": "KOSTAT 2018 municipalities (southkorea/southkorea-maps)",
   "cities": [
     {
       "cityId": "kr-1846986",
       "cityLabel": "Andong",
-      "count": 414,
+      "count": 1,
       "file": "kr-1846986.json"
     },
     {
       "cityId": "kr-1846918",
       "cityLabel": "Ansan-si",
-      "count": 31,
+      "count": 1,
       "file": "kr-1846918.json"
     },
     {
       "cityId": "kr-1846912",
       "cityLabel": "Anseong",
-      "count": 154,
+      "count": 1,
       "file": "kr-1846912.json"
     },
     {
       "cityId": "kr-1846898",
       "cityLabel": "Anyang-si",
-      "count": 10,
+      "count": 1,
       "file": "kr-1846898.json"
     },
     {
       "cityId": "kr-1846852",
       "cityLabel": "Ara-dong",
-      "count": 251,
+      "count": 1,
       "file": "kr-1846852.json"
     },
     {
       "cityId": "kr-1839726",
       "cityLabel": "Asan",
-      "count": 155,
+      "count": 1,
       "file": "kr-1839726.json"
     },
     {
       "cityId": "kr-1839011",
       "cityLabel": "Beolgyo",
-      "count": 176,
+      "count": 1,
       "file": "kr-1839011.json"
     },
     {
       "cityId": "kr-1835447",
       "cityLabel": "Boryeong",
-      "count": 160,
+      "count": 1,
       "file": "kr-1835447.json"
     },
     {
       "cityId": "kr-11674727",
       "cityLabel": "Boseong",
-      "count": 176,
+      "count": 1,
       "file": "kr-11674727.json"
     },
     {
       "cityId": "kr-1838722",
       "cityLabel": "Buan",
-      "count": 140,
+      "count": 1,
       "file": "kr-1838722.json"
     },
     {
       "cityId": "kr-1838716",
       "cityLabel": "Bucheon-si",
-      "count": 14,
+      "count": 1,
       "file": "kr-1838716.json"
     },
     {
       "cityId": "kr-1838524",
       "cityLabel": "Busan",
-      "count": 210,
+      "count": 16,
       "file": "kr-1838524.json"
     },
     {
       "cityId": "kr-1838508",
       "cityLabel": "Buyeo",
-      "count": 175,
+      "count": 1,
       "file": "kr-1838508.json"
     },
     {
       "cityId": "kr-6903078",
       "cityLabel": "Changnyeong",
-      "count": 141,
+      "count": 1,
       "file": "kr-6903078.json"
     },
     {
       "cityId": "kr-1846355",
       "cityLabel": "Changsu",
-      "count": 142,
+      "count": 1,
       "file": "kr-1846355.json"
     },
     {
       "cityId": "kr-1846326",
       "cityLabel": "Changwon",
-      "count": 55,
+      "count": 1,
       "file": "kr-1846326.json"
     },
     {
       "cityId": "kr-1845759",
       "cityLabel": "Cheonan",
-      "count": 124,
+      "count": 1,
       "file": "kr-1845759.json"
     },
     {
       "cityId": "kr-1845604",
       "cityLabel": "Cheongju-si",
-      "count": 113,
+      "count": 1,
       "file": "kr-1845604.json"
     },
     {
       "cityId": "kr-1845519",
       "cityLabel": "Cheongsong gun",
-      "count": 223,
+      "count": 1,
       "file": "kr-1845519.json"
     },
     {
       "cityId": "kr-1845388",
       "cityLabel": "Cheorwon",
-      "count": 247,
+      "count": 1,
       "file": "kr-1845388.json"
     },
     {
       "cityId": "kr-1846095",
       "cityLabel": "Chinch'on",
-      "count": 114,
+      "count": 1,
       "file": "kr-1846095.json"
     },
     {
       "cityId": "kr-1846052",
       "cityLabel": "Chinju",
-      "count": 191,
+      "count": 1,
       "file": "kr-1846052.json"
     },
     {
       "cityId": "kr-1845136",
       "cityLabel": "Chuncheon",
-      "count": 308,
+      "count": 1,
       "file": "kr-1845136.json"
     },
     {
       "cityId": "kr-1845033",
       "cityLabel": "Chungju",
-      "count": 274,
+      "count": 1,
       "file": "kr-1845033.json"
     },
     {
       "cityId": "kr-1835329",
       "cityLabel": "Daegu",
-      "count": 232,
+      "count": 8,
       "file": "kr-1835329.json"
     },
     {
       "cityId": "kr-1835235",
       "cityLabel": "Daejeon",
-      "count": 145,
+      "count": 5,
       "file": "kr-1835235.json"
     },
     {
       "cityId": "kr-1834946",
       "cityLabel": "Damyang",
-      "count": 119,
+      "count": 1,
       "file": "kr-1834946.json"
     },
     {
       "cityId": "kr-13286589",
       "cityLabel": "Dodong-ri",
-      "count": 19,
+      "count": 1,
       "file": "kr-13286589.json"
     },
     {
       "cityId": "kr-1892823",
       "cityLabel": "Donghae City",
-      "count": 47,
+      "count": 1,
       "file": "kr-1892823.json"
     },
     {
       "cityId": "kr-1832617",
       "cityLabel": "Eisen",
-      "count": 244,
+      "count": 1,
       "file": "kr-1832617.json"
     },
     {
       "cityId": "kr-1847050",
       "cityLabel": "Gaigeturi",
-      "count": 251,
+      "count": 1,
       "file": "kr-1847050.json"
     },
     {
       "cityId": "kr-1843163",
       "cityLabel": "Ganghwa-gun",
-      "count": 123,
+      "count": 1,
       "file": "kr-1843163.json"
     },
     {
       "cityId": "kr-1843137",
       "cityLabel": "Gangneung",
-      "count": 278,
+      "count": 1,
       "file": "kr-1843137.json"
     },
     {
       "cityId": "kr-1843082",
       "cityLabel": "Gapyeong",
-      "count": 234,
+      "count": 1,
       "file": "kr-1843082.json"
     },
     {
       "cityId": "kr-11101805",
       "cityLabel": "Geoje",
-      "count": 107,
+      "count": 1,
       "file": "kr-11101805.json"
     },
     {
       "cityId": "kr-1842966",
       "cityLabel": "Gijang",
-      "count": 60,
+      "count": 1,
       "file": "kr-1842966.json"
     },
     {
       "cityId": "kr-1842944",
       "cityLabel": "Gimcheon",
-      "count": 268,
+      "count": 1,
       "file": "kr-1842944.json"
     },
     {
       "cityId": "kr-1842936",
       "cityLabel": "Gimpo-si",
-      "count": 79,
+      "count": 1,
       "file": "kr-1842936.json"
     },
     {
       "cityId": "kr-1842616",
       "cityLabel": "Gongju",
-      "count": 239,
+      "count": 1,
       "file": "kr-1842616.json"
     },
     {
       "cityId": "kr-1842518",
       "cityLabel": "Goseong",
-      "count": 137,
+      "count": 1,
       "file": "kr-1842518.json"
     },
     {
       "cityId": "kr-1842485",
       "cityLabel": "Goyang-si",
-      "count": 46,
+      "count": 1,
       "file": "kr-1842485.json"
     },
     {
       "cityId": "kr-1842225",
       "cityLabel": "Gumi",
-      "count": 167,
+      "count": 1,
       "file": "kr-1842225.json"
     },
     {
       "cityId": "kr-1842030",
       "cityLabel": "Gunpo",
-      "count": 11,
+      "count": 1,
       "file": "kr-1842030.json"
     },
     {
       "cityId": "kr-1842025",
       "cityLabel": "Gunsan",
-      "count": 111,
+      "count": 1,
       "file": "kr-1842025.json"
     },
     {
       "cityId": "kr-1841988",
       "cityLabel": "Guri-si",
-      "count": 10,
+      "count": 1,
       "file": "kr-1841988.json"
     },
     {
       "cityId": "kr-1841810",
       "cityLabel": "Gwangju",
-      "count": 121,
+      "count": 1,
       "file": "kr-1841810.json"
     },
     {
       "cityId": "kr-1841811",
       "cityLabel": "Gwangju",
-      "count": 136,
+      "count": 5,
       "file": "kr-1841811.json"
     },
     {
       "cityId": "kr-1948005",
       "cityLabel": "Gwangmyeong",
-      "count": 11,
+      "count": 1,
       "file": "kr-1948005.json"
     },
     {
       "cityId": "kr-1884178",
       "cityLabel": "Gwangyang",
-      "count": 129,
+      "count": 1,
       "file": "kr-1884178.json"
     },
     {
       "cityId": "kr-1841603",
       "cityLabel": "Gyeongju",
-      "count": 352,
+      "count": 1,
       "file": "kr-1841603.json"
     },
     {
       "cityId": "kr-1841598",
       "cityLabel": "Gyeongsan-si",
-      "count": 112,
+      "count": 1,
       "file": "kr-1841598.json"
     },
     {
       "cityId": "kr-11863735",
       "cityLabel": "Hadong",
-      "count": 175,
+      "count": 1,
       "file": "kr-11863735.json"
     },
     {
       "cityId": "kr-1844751",
       "cityLabel": "Haenam",
-      "count": 275,
+      "count": 1,
       "file": "kr-1844751.json"
     },
     {
       "cityId": "kr-1897007",
       "cityLabel": "Hanam",
-      "count": 26,
+      "count": 1,
       "file": "kr-1897007.json"
     },
     {
       "cityId": "kr-1844308",
       "cityLabel": "Hayang",
-      "count": 112,
+      "count": 1,
       "file": "kr-1844308.json"
     },
     {
       "cityId": "kr-1832015",
       "cityLabel": "Heunghae",
-      "count": 199,
+      "count": 1,
       "file": "kr-1832015.json"
     },
     {
       "cityId": "kr-1844191",
       "cityLabel": "Hongch'on",
-      "count": 498,
+      "count": 1,
       "file": "kr-1844191.json"
     },
     {
       "cityId": "kr-1844174",
       "cityLabel": "Hongseong",
-      "count": 122,
+      "count": 1,
       "file": "kr-1844174.json"
     },
     {
       "cityId": "kr-1844045",
       "cityLabel": "Hwacheon",
-      "count": 249,
+      "count": 1,
       "file": "kr-1844045.json"
     },
     {
       "cityId": "kr-1897118",
       "cityLabel": "Hwado",
-      "count": 128,
+      "count": 1,
       "file": "kr-1897118.json"
     },
     {
       "cityId": "kr-1843847",
       "cityLabel": "Hwaseong-si",
-      "count": 206,
+      "count": 1,
       "file": "kr-1843847.json"
     },
     {
       "cityId": "kr-1843841",
       "cityLabel": "Hwasun",
-      "count": 210,
+      "count": 1,
       "file": "kr-1843841.json"
     },
     {
       "cityId": "kr-1925943",
       "cityLabel": "Hwawon",
-      "count": 113,
+      "count": 1,
       "file": "kr-1925943.json"
     },
     {
       "cityId": "kr-1843702",
       "cityLabel": "Icheon-si",
-      "count": 126,
+      "count": 1,
       "file": "kr-1843702.json"
     },
     {
       "cityId": "kr-6198535",
       "cityLabel": "Ido-dong",
-      "count": 251,
+      "count": 1,
       "file": "kr-6198535.json"
     },
     {
       "cityId": "kr-1843491",
       "cityLabel": "Iksan",
-      "count": 136,
+      "count": 1,
       "file": "kr-1843491.json"
     },
     {
       "cityId": "kr-1843585",
       "cityLabel": "Imsil",
-      "count": 155,
+      "count": 1,
       "file": "kr-1843585.json"
     },
     {
       "cityId": "kr-1843564",
       "cityLabel": "Incheon",
-      "count": 325,
+      "count": 10,
       "file": "kr-1843564.json"
     },
     {
       "cityId": "kr-1846544",
       "cityLabel": "Jangheung",
-      "count": 161,
+      "count": 1,
       "file": "kr-1846544.json"
     },
     {
       "cityId": "kr-1846371",
       "cityLabel": "Jangseong",
-      "count": 133,
+      "count": 1,
       "file": "kr-1846371.json"
     },
     {
       "cityId": "kr-1846266",
       "cityLabel": "Jeju City",
-      "count": 251,
+      "count": 1,
       "file": "kr-1846266.json"
     },
     {
       "cityId": "kr-1835967",
       "cityLabel": "Jenzan",
-      "count": 167,
+      "count": 1,
       "file": "kr-1835967.json"
     },
     {
       "cityId": "kr-11695689",
       "cityLabel": "Jeongeup",
-      "count": 192,
+      "count": 1,
       "file": "kr-11695689.json"
     },
     {
       "cityId": "kr-1845457",
       "cityLabel": "Jeonju",
-      "count": 26,
+      "count": 1,
       "file": "kr-1845457.json"
     },
     {
       "cityId": "kr-1846114",
       "cityLabel": "Jinan-gun",
-      "count": 212,
+      "count": 1,
       "file": "kr-1846114.json"
     },
     {
       "cityId": "kr-1845142",
       "cityLabel": "Jumunjin",
-      "count": 278,
+      "count": 1,
       "file": "kr-1845142.json"
     },
     {
       "cityId": "kr-1844954",
       "cityLabel": "Jungpyong",
-      "count": 25,
+      "count": 1,
       "file": "kr-1844954.json"
     },
     {
       "cityId": "kr-1842943",
       "cityLabel": "Kimhae",
-      "count": 121,
+      "count": 1,
       "file": "kr-1842943.json"
     },
     {
       "cityId": "kr-1842939",
       "cityLabel": "Kimje",
-      "count": 148,
+      "count": 1,
       "file": "kr-1842939.json"
     },
     {
       "cityId": "kr-1842153",
       "cityLabel": "Kinzan",
-      "count": 154,
+      "count": 1,
       "file": "kr-1842153.json"
     },
     {
       "cityId": "kr-1842859",
       "cityLabel": "Koch'ang",
-      "count": 162,
+      "count": 1,
       "file": "kr-1842859.json"
     },
     {
       "cityId": "kr-1842800",
       "cityLabel": "Koesan",
-      "count": 228,
+      "count": 1,
       "file": "kr-1842800.json"
     },
     {
       "cityId": "kr-1840179",
       "cityLabel": "Kosong",
-      "count": 181,
+      "count": 1,
       "file": "kr-1840179.json"
     },
     {
       "cityId": "kr-1842016",
       "cityLabel": "Kunwi",
-      "count": 167,
+      "count": 1,
       "file": "kr-1842016.json"
     },
     {
       "cityId": "kr-1841976",
       "cityLabel": "Kurye",
-      "count": 117,
+      "count": 1,
       "file": "kr-1841976.json"
     },
     {
       "cityId": "kr-1841775",
       "cityLabel": "Kwangyang",
-      "count": 129,
+      "count": 1,
       "file": "kr-1841775.json"
     },
     {
       "cityId": "kr-1842754",
       "cityLabel": "Kyosai",
-      "count": 107,
+      "count": 1,
       "file": "kr-1842754.json"
     },
     {
       "cityId": "kr-1841246",
       "cityLabel": "Masan",
-      "count": 12,
+      "count": 1,
       "file": "kr-1841246.json"
     },
     {
       "cityId": "kr-1841149",
       "cityLabel": "Miryang",
-      "count": 214,
+      "count": 1,
       "file": "kr-1841149.json"
     },
     {
       "cityId": "kr-1841066",
       "cityLabel": "Mokpo",
-      "count": 16,
+      "count": 1,
       "file": "kr-1841066.json"
     },
     {
       "cityId": "kr-1840982",
       "cityLabel": "Muan",
-      "count": 124,
+      "count": 1,
       "file": "kr-1840982.json"
     },
     {
       "cityId": "kr-1840886",
       "cityLabel": "Mungyeong",
-      "count": 251,
+      "count": 1,
       "file": "kr-1840886.json"
     },
     {
       "cityId": "kr-1840862",
       "cityLabel": "Munsan",
-      "count": 193,
+      "count": 1,
       "file": "kr-1840862.json"
     },
     {
       "cityId": "kr-1925936",
       "cityLabel": "Naeso",
-      "count": 24,
+      "count": 1,
       "file": "kr-1925936.json"
     },
     {
       "cityId": "kr-1840536",
       "cityLabel": "Naju",
-      "count": 158,
+      "count": 1,
       "file": "kr-1840536.json"
     },
     {
       "cityId": "kr-1840413",
       "cityLabel": "Namsa",
-      "count": 136,
+      "count": 1,
       "file": "kr-1840413.json"
     },
     {
       "cityId": "kr-1897122",
       "cityLabel": "Namyangju",
-      "count": 128,
+      "count": 1,
       "file": "kr-1897122.json"
     },
     {
       "cityId": "kr-1840379",
       "cityLabel": "Nangen",
-      "count": 197,
+      "count": 1,
       "file": "kr-1840379.json"
     },
     {
       "cityId": "kr-1832257",
       "cityLabel": "Neietsu",
-      "count": 310,
+      "count": 1,
       "file": "kr-1832257.json"
     },
     {
       "cityId": "kr-1840211",
       "cityLabel": "Nonsan",
-      "count": 150,
+      "count": 1,
       "file": "kr-1840211.json"
     },
     {
       "cityId": "kr-1839873",
       "cityLabel": "Okcheon",
-      "count": 147,
+      "count": 1,
       "file": "kr-1839873.json"
     },
     {
       "cityId": "kr-6198579",
       "cityLabel": "Ora-dong",
-      "count": 251,
+      "count": 1,
       "file": "kr-6198579.json"
     },
     {
       "cityId": "kr-1839652",
       "cityLabel": "Osan",
-      "count": 11,
+      "count": 1,
       "file": "kr-1839652.json"
     },
     {
       "cityId": "kr-1839071",
       "cityLabel": "Pohang",
-      "count": 199,
+      "count": 1,
       "file": "kr-1839071.json"
     },
     {
       "cityId": "kr-1883990",
       "cityLabel": "Ponggae-dong",
-      "count": 251,
+      "count": 1,
       "file": "kr-1883990.json"
     },
     {
       "cityId": "kr-1896953",
       "cityLabel": "Pubal",
-      "count": 126,
+      "count": 1,
       "file": "kr-1896953.json"
     },
     {
       "cityId": "kr-1838469",
       "cityLabel": "Pyeongchang",
-      "count": 395,
+      "count": 1,
       "file": "kr-1838469.json"
     },
     {
       "cityId": "kr-1838343",
       "cityLabel": "Pyeongtaek",
-      "count": 127,
+      "count": 1,
       "file": "kr-1838343.json"
     },
     {
       "cityId": "kr-1837706",
       "cityLabel": "Sangju",
-      "count": 343,
+      "count": 1,
       "file": "kr-1837706.json"
     },
     {
       "cityId": "kr-1837547",
       "cityLabel": "Sanji",
-      "count": 251,
+      "count": 1,
       "file": "kr-1837547.json"
     },
     {
       "cityId": "kr-1838069",
       "cityLabel": "Santyoku",
-      "count": 313,
+      "count": 1,
       "file": "kr-1838069.json"
     },
     {
       "cityId": "kr-11523293",
       "cityLabel": "Sejong",
-      "count": 131,
+      "count": 1,
       "file": "kr-11523293.json"
     },
     {
       "cityId": "kr-6194195",
       "cityLabel": "Seodong",
-      "count": 251,
+      "count": 1,
       "file": "kr-6194195.json"
     },
     {
       "cityId": "kr-6621166",
       "cityLabel": "Seogwipo",
-      "count": 225,
+      "count": 1,
       "file": "kr-6621166.json"
     },
     {
       "cityId": "kr-1836208",
       "cityLabel": "Seonghwan",
-      "count": 57,
+      "count": 1,
       "file": "kr-1836208.json"
     },
     {
       "cityId": "kr-1897000",
       "cityLabel": "Seongnam-si",
-      "count": 13,
+      "count": 1,
       "file": "kr-1897000.json"
     },
     {
       "cityId": "kr-1835895",
       "cityLabel": "Seosan",
-      "count": 209,
+      "count": 1,
       "file": "kr-1835895.json"
     },
     {
       "cityId": "kr-1835848",
       "cityLabel": "Seoul",
-      "count": 169,
+      "count": 25,
       "file": "kr-1835848.json"
     },
     {
       "cityId": "kr-1837362",
       "cityLabel": "Siheungdong",
-      "count": 3,
+      "count": 1,
       "file": "kr-1837362.json"
     },
     {
       "cityId": "kr-6395804",
       "cityLabel": "Sinan",
-      "count": 195,
+      "count": 1,
       "file": "kr-6395804.json"
     },
     {
       "cityId": "kr-1882056",
       "cityLabel": "Sinhyeon",
-      "count": 107,
+      "count": 1,
       "file": "kr-1882056.json"
     },
     {
       "cityId": "kr-1836839",
       "cityLabel": "Sintansin",
-      "count": 17,
+      "count": 1,
       "file": "kr-1836839.json"
     },
     {
       "cityId": "kr-1836553",
       "cityLabel": "Sokcho",
-      "count": 26,
+      "count": 1,
       "file": "kr-1836553.json"
     },
     {
       "cityId": "kr-6888788",
       "cityLabel": "Songgangdong",
-      "count": 47,
+      "count": 1,
       "file": "kr-6888788.json"
     },
     {
       "cityId": "kr-1835648",
       "cityLabel": "Suncheon",
-      "count": 236,
+      "count": 1,
       "file": "kr-1835648.json"
     },
     {
       "cityId": "kr-1835553",
       "cityLabel": "Suwon",
-      "count": 10,
+      "count": 1,
       "file": "kr-1835553.json"
     },
     {
       "cityId": "kr-1835515",
       "cityLabel": "T'aebaek",
-      "count": 84,
+      "count": 1,
       "file": "kr-1835515.json"
     },
     {
       "cityId": "kr-1835096",
       "cityLabel": "Taesal-li",
-      "count": 209,
+      "count": 1,
       "file": "kr-1835096.json"
     },
     {
       "cityId": "kr-1833332",
       "cityLabel": "Tallang-dong",
-      "count": 251,
+      "count": 1,
       "file": "kr-1833332.json"
     },
     {
       "cityId": "kr-1834885",
       "cityLabel": "Tangjin",
-      "count": 202,
+      "count": 1,
       "file": "kr-1834885.json"
     },
     {
       "cityId": "kr-1845020",
       "cityLabel": "Tongyeong",
-      "count": 67,
+      "count": 1,
       "file": "kr-1845020.json"
     },
     {
       "cityId": "kr-1833788",
       "cityLabel": "Uijeongbu-si",
-      "count": 24,
+      "count": 1,
       "file": "kr-1833788.json"
     },
     {
       "cityId": "kr-6573901",
       "cityLabel": "Uiwang",
-      "count": 11,
+      "count": 1,
       "file": "kr-6573901.json"
     },
     {
       "cityId": "kr-1833747",
       "cityLabel": "Ulsan",
-      "count": 281,
+      "count": 5,
       "file": "kr-1833747.json"
     },
     {
       "cityId": "kr-1912205",
       "cityLabel": "Ungsang",
-      "count": 125,
+      "count": 1,
       "file": "kr-1912205.json"
     },
     {
       "cityId": "kr-1912209",
       "cityLabel": "Wabu",
-      "count": 128,
+      "count": 1,
       "file": "kr-1912209.json"
     },
     {
       "cityId": "kr-1833514",
       "cityLabel": "Waegwan",
-      "count": 119,
+      "count": 1,
       "file": "kr-1833514.json"
     },
     {
       "cityId": "kr-1833466",
       "cityLabel": "Wanju",
-      "count": 30,
+      "count": 1,
       "file": "kr-1833466.json"
     },
     {
       "cityId": "kr-1833105",
       "cityLabel": "Wonju",
-      "count": 240,
+      "count": 1,
       "file": "kr-1833105.json"
     },
     {
       "cityId": "kr-1832909",
       "cityLabel": "Yanggu",
-      "count": 181,
+      "count": 1,
       "file": "kr-1832909.json"
     },
     {
       "cityId": "kr-1832847",
       "cityLabel": "Yangju",
-      "count": 89,
+      "count": 1,
       "file": "kr-1832847.json"
     },
     {
       "cityId": "kr-1832830",
       "cityLabel": "Yangp'yong",
-      "count": 238,
+      "count": 1,
       "file": "kr-1832830.json"
     },
     {
       "cityId": "kr-1832828",
       "cityLabel": "Yangsan",
-      "count": 125,
+      "count": 1,
       "file": "kr-1832828.json"
     },
     {
       "cityId": "kr-1832798",
       "cityLabel": "Yecheon",
-      "count": 180,
+      "count": 1,
       "file": "kr-1832798.json"
     },
     {
       "cityId": "kr-1832743",
       "cityLabel": "Yeoju",
-      "count": 173,
+      "count": 1,
       "file": "kr-1832743.json"
     },
     {
       "cityId": "kr-11762608",
       "cityLabel": "Yeongam",
-      "count": 158,
+      "count": 1,
       "file": "kr-11762608.json"
     },
     {
       "cityId": "kr-1832566",
       "cityLabel": "Yeongdong",
-      "count": 231,
+      "count": 1,
       "file": "kr-1832566.json"
     },
     {
       "cityId": "kr-1832501",
       "cityLabel": "Yeonggwang",
-      "count": 132,
+      "count": 1,
       "file": "kr-1832501.json"
     },
     {
       "cityId": "kr-1832384",
       "cityLabel": "Yeongju",
-      "count": 184,
+      "count": 1,
       "file": "kr-1832384.json"
     },
     {
       "cityId": "kr-1832215",
       "cityLabel": "Yeonil",
-      "count": 107,
+      "count": 1,
       "file": "kr-1832215.json"
     },
     {
       "cityId": "kr-1884138",
       "cityLabel": "Yeosu",
-      "count": 142,
+      "count": 1,
       "file": "kr-1884138.json"
     },
     {
       "cityId": "kr-1832771",
       "cityLabel": "Yesan",
-      "count": 153,
+      "count": 1,
       "file": "kr-1832771.json"
     },
     {
       "cityId": "kr-6800487",
       "cityLabel": "Yongsan-dong",
-      "count": 7,
+      "count": 1,
       "file": "kr-6800487.json"
     },
     {
       "cityId": "kr-1886598",
       "cityLabel": "Yonmu",
-      "count": 150,
+      "count": 1,
       "file": "kr-1886598.json"
     }
   ],
-  "totalDistricts": 24095
+  "totalDistricts": 221,
+  "guCount": 250
 }
