@@ -29,6 +29,7 @@ import {
   DISTRICT_FILL_RADIUS_M,
   isInSouthKorea,
 } from '../utils/districtKey'
+import { imageryToneForZoomLevel } from '../config/mapColors'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
 const MIN_ZOOM_DISTANCE = 30
@@ -302,7 +303,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
             addDistrictPolygon(viewer, `ann-district-${districtKeyValue}-${ringIndex}`, ring, {
               material: fillColor,
               outlineColor,
-              outlineWidth: 2,
+              outlineWidth: DISTRICT_BORDER_WIDTH,
             })
           }
           continue
@@ -321,7 +322,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
           material: fillColor,
           outline: true,
           outlineColor,
-          outlineWidth: 2,
+          outlineWidth: DISTRICT_BORDER_WIDTH,
           height: 0,
         },
       })
@@ -407,7 +408,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     }
 
     if (!districtsToOutline.length) return
-    if (zoomLevel !== 'city' && zoomLevel !== 'district') return
 
     const isKrSelection =
       activeDistrictCityId?.startsWith('kr-') ||
@@ -430,11 +430,22 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   }, [
     viewerReady,
     countryCode,
-    zoomLevel,
     districtsToOutline,
     activeDistrictCityId,
     activeDistrictId,
   ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer || !viewerReady) return
+
+    const layer = viewer.imageryLayers.get(0)
+    if (!layer) return
+
+    const tone = imageryToneForZoomLevel(zoomLevel)
+    layer.saturation = tone.saturation
+    layer.brightness = tone.brightness
+  }, [viewerReady, zoomLevel])
 
   useEffect(() => {
     const viewer = viewerRef.current

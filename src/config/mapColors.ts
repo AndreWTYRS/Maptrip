@@ -1,5 +1,4 @@
 import type { ZoomLevel } from './zoomLevels'
-import { districtKey } from '../utils/districtKey'
 
 export type MapColorScheme = 'color' | 'gray-cool' | 'gray-neutral' | 'gray-warm'
 
@@ -9,19 +8,24 @@ const GRAY_SCHEME_BY_LEVEL: Record<Exclude<ZoomLevel, 'world'>, MapColorScheme> 
   district: 'gray-warm',
 }
 
-export function resolveMapColorScheme(
-  zoomLevel: ZoomLevel,
-  isInputRevealed: boolean,
-  centerLat: number,
-  centerLon: number,
-  revealedDistricts: Set<string>,
-): MapColorScheme {
+/** HUD label only — base map desaturation is applied to imagery layers in GlobeViewer. */
+export function resolveMapColorScheme(zoomLevel: ZoomLevel): MapColorScheme {
   if (zoomLevel === 'world') return 'color'
-
-  const currentDistrict = districtKey(centerLat, centerLon)
-  if (revealedDistricts.has(currentDistrict)) return 'color'
-
-  if (isInputRevealed) return 'color'
-
   return GRAY_SCHEME_BY_LEVEL[zoomLevel]
+}
+
+export interface ImageryTone {
+  saturation: number
+  brightness: number
+}
+
+const IMAGERY_TONE_BY_LEVEL: Record<ZoomLevel, ImageryTone> = {
+  world: { saturation: 1, brightness: 1 },
+  country: { saturation: 0.35, brightness: 0.9 },
+  city: { saturation: 0.2, brightness: 0.82 },
+  district: { saturation: 0.45, brightness: 0.88 },
+}
+
+export function imageryToneForZoomLevel(zoomLevel: ZoomLevel): ImageryTone {
+  return IMAGERY_TONE_BY_LEVEL[zoomLevel]
 }
