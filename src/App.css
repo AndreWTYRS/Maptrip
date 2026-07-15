@@ -272,6 +272,40 @@
   height: 100%;
 }
 
+.globe-viewer--loading {
+  background:
+    radial-gradient(circle at 30% 35%, rgba(99, 140, 255, 0.12) 0%, transparent 55%),
+    radial-gradient(circle at 70% 65%, rgba(72, 199, 142, 0.08) 0%, transparent 50%),
+    #0b1020;
+  animation: globe-pulse 1.6s ease-in-out infinite;
+}
+
+.app-loading-sidebar {
+  pointer-events: none;
+  background: rgba(8, 12, 24, 0.92);
+  animation: sidebar-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes globe-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sidebar-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .map-hud {
   z-index: 20;
   display: flex;

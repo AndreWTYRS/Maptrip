@@ -1,16 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { ISO_COUNTRY_CODES } from '../config/isoCountryCodes'
-import { hasGoogleMapsApiKey } from '../config/googleMaps'
 import { loadCitiesForCountry, loadCountriesFromOpenData } from '../config/citiesByCountry/loadCities'
 import { hasKrHexDistricts, loadDistrictsForCity, attachBoundaryRings } from '../config/districtsByCity/loadDistricts'
 import type { LocationTreeNode } from '../config/locationTree/types'
-import {
-  geocodeAllCountries,
-  reverseGeocode,
-  type GeocodedCountry,
-  type ReverseGeocodeResult,
-} from '../services/googleGeocoding'
+import { reverseGeocode, type ReverseGeocodeResult } from '../services/googleGeocoding'
 import {
   autocompleteLocations,
   searchDistrictsInCity,
@@ -30,18 +23,6 @@ interface GoogleLocationState {
   loadDistricts: (city: LocationTreeNode, country: LocationTreeNode) => Promise<LocationTreeNode[]>
   searchLocations: (query: string) => Promise<LocationTreeNode[]>
   resolvePointLocation: (pointId: string, lat: number, lon: number) => Promise<ReverseGeocodeResult | null>
-}
-
-function geocodedToNode(country: GeocodedCountry): LocationTreeNode {
-  return {
-    id: country.id,
-    placeId: country.placeId,
-    countryCode: country.code,
-    label: country.label,
-    type: 'country',
-    lat: country.lat,
-    lon: country.lon,
-  }
 }
 
 function cacheKey(lat: number, lon: number): string {
@@ -66,38 +47,20 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
         set({ countriesLoading: true, countriesError: null })
         try {
-          if (!hasGoogleMapsApiKey()) {
-            const countries = await loadCountriesFromOpenData()
-            set({
-              countries,
-              countriesLoading: false,
-              countriesError: countries.length ? null : 'No countries loaded.',
-            })
-            return countries
-          }
-
-          const geocoded = await geocodeAllCountries(ISO_COUNTRY_CODES)
-          if (!geocoded.length) {
-            const countries = await loadCountriesFromOpenData()
-            set({
-              countries,
-              countriesLoading: false,
-              countriesError: countries.length ? null : 'No countries loaded.',
-            })
-            return countries
-          }
-
-          const countries = geocoded.map(geocodedToNode)
-          set({ countries, countriesLoading: false, countriesError: null })
-          return countries
-        } catch {
           const countries = await loadCountriesFromOpenData()
           set({
             countries,
             countriesLoading: false,
-            countriesError: countries.length ? null : 'Failed to load countries.',
+            countriesError: countries.length ? null : 'No countries loaded.',
           })
           return countries
+        } catch {
+          set({
+            countries: [],
+            countriesLoading: false,
+            countriesError: 'Failed to load countries.',
+          })
+          return []
         }
       },
 

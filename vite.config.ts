@@ -1,9 +1,16 @@
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { rename, rm } from 'node:fs/promises'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import cesiumPlugin from 'vite-plugin-cesium'
+
+const require = createRequire(import.meta.url)
+const compression = require('vite-plugin-compression') as (options?: {
+  algorithm?: 'gzip' | 'brotliCompress'
+  ext?: string
+}) => Plugin
 
 const cesium = cesiumPlugin as unknown as () => Plugin
 
@@ -59,5 +66,22 @@ function fixCesiumForGitHubPages(): Plugin {
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
-  plugins: [react(), cesium(), fixCesiumForGitHubPages()],
+  plugins: [
+    react(),
+    cesium(),
+    fixCesiumForGitHubPages(),
+    compression({ algorithm: 'brotliCompress', ext: '.br' }),
+    compression({ algorithm: 'gzip', ext: '.gz' }),
+  ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+  },
 })

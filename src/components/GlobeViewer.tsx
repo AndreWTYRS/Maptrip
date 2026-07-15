@@ -113,6 +113,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     null,
   )
   const [viewerReady, setViewerReady] = useState(false)
+  const [shouldInitViewer, setShouldInitViewer] = useState(false)
   const [krBoundariesReady, setKrBoundariesReady] = useState(false)
 
   const user = useAuthStore((s) => s.user)
@@ -177,6 +178,28 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    let cancelled = false
+    const startInit = () => {
+      if (!cancelled) setShouldInitViewer(true)
+    }
+
+    const idleId =
+      typeof requestIdleCallback !== 'undefined'
+        ? requestIdleCallback(startInit, { timeout: 150 })
+        : undefined
+    const rafId = idleId === undefined ? requestAnimationFrame(startInit) : undefined
+
+    return () => {
+      cancelled = true
+      if (idleId !== undefined) cancelIdleCallback(idleId)
+      if (rafId !== undefined) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !shouldInitViewer) return
 
     const ionToken = import.meta.env.VITE_CESIUM_ION_TOKEN
     if (ionToken) Ion.defaultAccessToken = ionToken
@@ -268,6 +291,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       setViewerReady(false)
     }
   }, [
+    shouldInitViewer,
     recordAction,
     setAltitudeMeters,
     setCenter,
@@ -583,5 +607,11 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     setZoomLevel,
   ])
 
-  return <div ref={containerRef} className={className} />
+  return (
+    <div
+      ref={containerRef}
+      className={[className, !viewerReady && 'globe-viewer--loading'].filter(Boolean).join(' ')}
+      aria-busy={!viewerReady}
+    />
+  )
 }
