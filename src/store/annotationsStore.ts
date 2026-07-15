@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AnnotationMode, MapPoint, MapRoute } from '../types/annotations'
-import { districtKey, districtKeysForCoords } from '../utils/districtKey'
+import { resolveDistrictKey, resolveDistrictKeysForCoords } from '../utils/districtKey'
 
 interface RouteDraftPoint {
   lat: number
@@ -15,10 +15,10 @@ interface AnnotationsState {
   revealedDistrictKeys: string[]
   annotationMode: AnnotationMode
   routeDraft: RouteDraftPoint[] | null
-  addPoint: (userId: string, lat: number, lon: number) => void
+  addPoint: (userId: string, lat: number, lon: number) => Promise<void>
   removePoint: (userId: string, pointId: string) => void
-  addRouteWaypoint: (lat: number, lon: number) => void
-  finishRoute: (userId: string) => void
+  addRouteWaypoint: (lat: number, lon: number) => Promise<void>
+  finishRoute: (userId: string) => Promise<void>
   cancelRouteDraft: () => void
   setAnnotationMode: (mode: AnnotationMode) => void
   clearUserAnnotations: (userId: string) => void
@@ -42,8 +42,8 @@ export const useAnnotationsStore = create<AnnotationsState>()(
       annotationMode: 'none',
       routeDraft: null,
 
-      addPoint: (userId, lat, lon) => {
-        const key = districtKey(lat, lon)
+      addPoint: async (userId, lat, lon) => {
+        const key = await resolveDistrictKey(lat, lon)
         const point: MapPoint = {
           id: crypto.randomUUID(),
           userId,
@@ -72,14 +72,15 @@ export const useAnnotationsStore = create<AnnotationsState>()(
           }
         }),
 
-      addRouteWaypoint: (lat, lon) => {
-        const waypoint: RouteDraftPoint = { lat, lon, districtKey: districtKey(lat, lon) }
+      addRouteWaypoint: async (lat, lon) => {
+        const key = await resolveDistrictKey(lat, lon)
+        const waypoint: RouteDraftPoint = { lat, lon, districtKey: key }
         set((state) => ({
           routeDraft: state.routeDraft ? [...state.routeDraft, waypoint] : [waypoint],
         }))
       },
 
-      finishRoute: (userId) => {
+      finishRoute: async (userId) => {
         const draft = get().routeDraft
         if (!draft || draft.length < 2) return
 
@@ -88,7 +89,7 @@ export const useAnnotationsStore = create<AnnotationsState>()(
           userId,
           name: `Route ${get().routes.filter((r) => r.userId === userId).length + 1}`,
           points: draft,
-          districtKeys: districtKeysForCoords(draft),
+          districtKeys: await resolveDistrictKeysForCoords(draft),
           createdAt: Date.now(),
         }
 

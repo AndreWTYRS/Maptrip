@@ -20,13 +20,14 @@ import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
 import { useRevealStore } from '../store/revealStore'
-import { getKrGuById, isKrGuDistrictKey, isValidLatLonRing, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
+import { getKrGuById, isKrGuDistrictKey, isValidLatLonRing, loadKrGuLookup, ringToCesiumDegrees } from '../config/districtsByCity/krGuLookup'
 import { useGoogleLocationStore } from '../store/googleLocationStore'
 import { countryFromCoords } from '../utils/countryFromCoords'
 import {
   DISTRICT_BORDER_CSS,
   DISTRICT_BORDER_WIDTH,
   DISTRICT_FILL_RADIUS_M,
+  isInSouthKorea,
 } from '../utils/districtKey'
 import { altitudeToZoomLevel, getAltitudeForLevel } from '../utils/zoomLevel'
 
@@ -85,6 +86,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const [viewerReady, setViewerReady] = useState(false)
+  const [krBoundariesReady, setKrBoundariesReady] = useState(false)
 
   const user = useAuthStore((s) => s.user)
   const recordAction = useRevealStore((s) => s.recordAction)
@@ -116,6 +118,25 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
   const annotationMode = useAnnotationsStore((s) => s.annotationMode)
   const addPoint = useAnnotationsStore((s) => s.addPoint)
   const addRouteWaypoint = useAnnotationsStore((s) => s.addRouteWaypoint)
+
+  const revealedDistrictKeys = useMemo(() => {
+    const userId = user?.id
+    const keys = new Set<string>()
+    for (const point of points.filter((p) => !userId || p.userId === userId)) {
+      keys.add(point.districtKey)
+    }
+    return [...keys]
+  }, [points, user])
+
+  useEffect(() => {
+    const needsKr =
+      countryCode === 'KR' ||
+      revealedDistrictKeys.some((key) => isKrGuDistrictKey(key)) ||
+      points.some((point) => isInSouthKorea(point.lat, point.lon))
+    if (!needsKr) return
+
+    void loadKrGuLookup().then(() => setKrBoundariesReady(true))
+  }, [countryCode, points, revealedDistrictKeys])
 
   useEffect(() => {
     const container = containerRef.current
@@ -234,12 +255,12 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
       if (!coords) return
 
       if (annotationMode === 'point') {
-        addPoint(user.id, coords.lat, coords.lon)
+        void addPoint(user.id, coords.lat, coords.lon)
         return
       }
 
       if (annotationMode === 'route') {
-        addRouteWaypoint(coords.lat, coords.lon)
+        void addRouteWaypoint(coords.lat, coords.lon)
       }
     }
 
@@ -272,13 +293,13 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     const fillColor = Color.fromCssColorString('#638cff').withAlpha(0.38)
     const outlineColor = DISTRICT_BORDER_COLOR
 
-    for (const point of points.filter((p) => !userId || p.userId === userId)) {
-      if (isKrGuDistrictKey(point.districtKey)) {
-        const gu = getKrGuById(point.districtKey)
+    for (const districtKeyValue of revealedDistrictKeys) {
+      if (isKrGuDistrictKey(districtKeyValue)) {
+        const gu = getKrGuById(districtKeyValue)
         const rings = gu?.rings ?? []
         if (rings.length) {
           for (const [ringIndex, ring] of rings.entries()) {
-            addDistrictPolygon(viewer, `ann-district-${point.id}-${ringIndex}`, ring, {
+            addDistrictPolygon(viewer, `ann-district-${districtKeyValue}-${ringIndex}`, ring, {
               material: fillColor,
               outlineColor,
               outlineWidth: 2,
@@ -288,9 +309,12 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
 
-      const entityOptions: Parameters<Viewer['entities']['add']>[0] = {
-        id: `ann-district-${point.id}`,
-        position: Cartesian3.fromDegrees(point.lon, point.lat),
+      const samplePoint = points.find((point) => point.districtKey === districtKeyValue)
+      if (!samplePoint) continue
+
+      viewer.entities.add({
+        id: `ann-district-${districtKeyValue}`,
+        position: Cartesian3.fromDegrees(samplePoint.lon, samplePoint.lat),
         ellipse: {
           semiMajorAxis: DISTRICT_FILL_RADIUS_M,
           semiMinorAxis: DISTRICT_FILL_RADIUS_M,
@@ -300,9 +324,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
           outlineWidth: 2,
           height: 0,
         },
-      }
-
-      viewer.entities.add(entityOptions)
+      })
     }
 
     if (userId) {
@@ -371,7 +393,7 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
     }
-  }, [viewerReady, user, points, routes, routeDraft])
+  }, [viewerReady, user, points, routes, routeDraft, revealedDistrictKeys, krBoundariesReady])
 
   useEffect(() => {
     const viewer = viewerRef.current

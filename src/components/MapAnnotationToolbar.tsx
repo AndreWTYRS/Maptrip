@@ -61,7 +61,7 @@ export function MapAnnotationToolbar() {
           <button
             type="button"
             className="annotation-toolbar__btn annotation-toolbar__btn--primary"
-            onClick={() => finishRoute(user.id)}
+            onClick={() => void finishRoute(user.id)}
           >
             Finish route
           </button>

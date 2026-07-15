@@ -2,6 +2,7 @@ import {
   findKrGuDistrictKey,
   getKrGuById,
   isKrGuDistrictKey,
+  loadKrGuLookup,
 } from '../config/districtsByCity/krGuLookup'
 export const LAT_CELL = 0.011
 export const LON_CELL = 0.016
@@ -34,6 +35,14 @@ export function districtKey(lat: number, lon: number): string {
   return `${latCell}:${lonCell}`
 }
 
+/** Resolves the district key after loading KR gu boundaries when needed. */
+export async function resolveDistrictKey(lat: number, lon: number): Promise<string> {
+  if (isInSouthKorea(lat, lon)) {
+    await loadKrGuLookup()
+  }
+  return districtKey(lat, lon)
+}
+
 export function districtCenter(key: string): { lat: number; lon: number } {
   if (isKrGuDistrictKey(key)) {
     const gu = getKrGuById(key)
@@ -48,6 +57,15 @@ export function districtCenter(key: string): { lat: number; lon: number } {
 
 export function districtKeysForCoords(coords: Array<{ lat: number; lon: number }>): string[] {
   return [...new Set(coords.map(({ lat, lon }) => districtKey(lat, lon)))]
+}
+
+export async function resolveDistrictKeysForCoords(
+  coords: Array<{ lat: number; lon: number }>,
+): Promise<string[]> {
+  if (coords.some(({ lat, lon }) => isInSouthKorea(lat, lon))) {
+    await loadKrGuLookup()
+  }
+  return districtKeysForCoords(coords)
 }
 
 /** Matches ~district zoom viewport at 800 m camera height (non-KR fallback) */
