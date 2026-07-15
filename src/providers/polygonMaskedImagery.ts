@@ -5,10 +5,8 @@ import {
   type ImageryTypes,
   type Request,
 } from 'cesium'
+import type { ImageryTone } from '../config/mapColors'
 import { pointInRing, type LatLonRing } from '../config/districtsByCity/krGuLookup'
-
-/** Mask in coarse blocks — ~64× fewer point-in-polygon checks per tile. */
-const MASK_BLOCK = 8
 
 interface RingBounds {
   ring: LatLonRing
@@ -18,21 +16,21 @@ interface RingBounds {
   maxLon: number
 }
 
-const maskCache = new Map<string, HTMLCanvasElement>()
-let maskVersion = 0
-const MASK_CACHE_LIMIT = 256
+const tileCache = new Map<string, HTMLCanvasElement>()
+let tileCacheVersion = 0
+const TILE_CACHE_LIMIT = 384
 
 export function bumpPolygonMaskVersion(): void {
-  maskVersion += 1
-  maskCache.clear()
+  tileCacheVersion += 1
+  tileCache.clear()
 }
 
-function rememberMaskedTile(key: string, canvas: HTMLCanvasElement) {
-  if (maskCache.size >= MASK_CACHE_LIMIT) {
-    const oldest = maskCache.keys().next().value
-    if (oldest) maskCache.delete(oldest)
+function rememberTile(key: string, canvas: HTMLCanvasElement) {
+  if (tileCache.size >= TILE_CACHE_LIMIT) {
+    const oldest = tileCache.keys().next().value
+    if (oldest) tileCache.delete(oldest)
   }
-  maskCache.set(key, canvas)
+  tileCache.set(key, canvas)
 }
 
 function ringBounds(ring: LatLonRing): RingBounds {
@@ -70,17 +68,20 @@ function getImageSize(image: ImageryTypes): { width: number; height: number } {
   return { width: 256, height: 256 }
 }
 
-function getTransparentTile(width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  return canvas
+function toneNeedsProcessing(tone: ImageryTone): boolean {
+  return tone.saturation < 0.999 || Math.abs(tone.brightness - 1) > 0.001
 }
 
-function maskImage(
+function applyToneChannel(value: number, gray: number, tone: ImageryTone): number {
+  const adjusted = (gray + (value - gray) * tone.saturation) * tone.brightness
+  return Math.max(0, Math.min(255, adjusted))
+}
+
+function processTile(
   image: ImageryTypes,
   tileRect: Rectangle,
   relevant: RingBounds[],
+  tone: ImageryTone,
 ): HTMLCanvasElement {
   const { width, height } = getImageSize(image)
   const canvas = document.createElement('canvas')
@@ -99,24 +100,27 @@ function maskImage(
   const north = CesiumMath.toDegrees(tileRect.north)
   const lonSpan = east - west
   const latSpan = north - south
+  const restoreColor = relevant.length > 0
 
-  for (let by = 0; by < height; by += MASK_BLOCK) {
-    const blockH = Math.min(MASK_BLOCK, height - by)
-    const lat = north - ((by + blockH * 0.5) / height) * latSpan
+  for (let py = 0; py < height; py++) {
+    const lat = north - ((py + 0.5) / height) * latSpan
 
-    for (let bx = 0; bx < width; bx += MASK_BLOCK) {
-      const blockW = Math.min(MASK_BLOCK, width - bx)
-      const lon = west + ((bx + blockW * 0.5) / width) * lonSpan
+    for (let px = 0; px < width; px++) {
+      const lon = west + ((px + 0.5) / width) * lonSpan
+      const offset = (py * width + px) * 4
 
-      const inside = relevant.some(({ ring }) => pointInRing(lon, lat, ring))
-      if (inside) continue
-
-      for (let py = 0; py < blockH; py++) {
-        const row = (by + py) * width
-        for (let px = 0; px < blockW; px++) {
-          data[(row + bx + px) * 4 + 3] = 0
-        }
+      if (restoreColor) {
+        const inside = relevant.some(({ ring }) => pointInRing(lon, lat, ring))
+        if (inside) continue
       }
+
+      const r = data[offset]
+      const g = data[offset + 1]
+      const b = data[offset + 2]
+      const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b
+      data[offset] = applyToneChannel(r, gray, tone)
+      data[offset + 1] = applyToneChannel(g, gray, tone)
+      data[offset + 2] = applyToneChannel(b, gray, tone)
     }
   }
 
@@ -139,60 +143,40 @@ export function circleAsRing(lat: number, lon: number, radiusM: number, segments
   return ring
 }
 
-export function unionRectangleForRings(rings: LatLonRing[]): Rectangle | undefined {
-  if (!rings.length) return undefined
-
-  let minLat = Infinity
-  let maxLat = -Infinity
-  let minLon = Infinity
-  let maxLon = -Infinity
-
-  for (const ring of rings) {
-    for (const [lat, lon] of ring) {
-      minLat = Math.min(minLat, lat)
-      maxLat = Math.max(maxLat, lat)
-      minLon = Math.min(minLon, lon)
-      maxLon = Math.max(maxLon, lon)
-    }
-  }
-
-  return Rectangle.fromDegrees(minLon, minLat, maxLon, maxLat)
-}
-
-export function createPolygonMaskedImageryProvider(
+/**
+ * Single imagery provider: desaturates the map and restores full color inside revealed polygons.
+ * Avoids two-layer parallax that makes district edges shift while panning.
+ */
+export function createRevealAwareImageryProvider(
   base: ImageryProvider,
   getRings: () => LatLonRing[],
+  getTone: () => ImageryTone,
 ): ImageryProvider {
   const provider = Object.create(base) as ImageryProvider
   const baseRequestImage = base.requestImage.bind(base)
   let boundsCache: RingBounds[] = []
   let boundsVersion = -1
 
-  Object.defineProperty(provider, 'hasAlphaChannel', {
-    configurable: true,
-    get: () => true,
-  })
-
   provider.requestImage = (x: number, y: number, level: number, request?: Request) => {
+    const tone = getTone()
     const rings = getRings()
-    if (!rings.length) return undefined
+    const needsTone = toneNeedsProcessing(tone)
+    const hasReveal = needsTone && rings.length > 0
 
-    if (boundsVersion !== maskVersion) {
+    if (!needsTone) {
+      return baseRequestImage(x, y, level, request)
+    }
+
+    if (boundsVersion !== tileCacheVersion) {
       boundsCache = rings.map(ringBounds)
-      boundsVersion = maskVersion
+      boundsVersion = tileCacheVersion
     }
 
     const tileRect = base.tilingScheme.tileXYToRectangle(x, y, level)
-    const tileWidth = base.tileWidth
-    const tileHeight = base.tileHeight
-    const relevant = ringsForTile(tileRect, boundsCache)
-
-    if (!relevant.length) {
-      return Promise.resolve(getTransparentTile(tileWidth, tileHeight))
-    }
-
-    const cacheKey = `${maskVersion}:${level}:${x}:${y}`
-    const cached = maskCache.get(cacheKey)
+    const relevant = hasReveal ? ringsForTile(tileRect, boundsCache) : []
+    const toneKey = `${tone.saturation.toFixed(3)}:${tone.brightness.toFixed(3)}`
+    const cacheKey = `${tileCacheVersion}:${toneKey}:${level}:${x}:${y}`
+    const cached = tileCache.get(cacheKey)
     if (cached) return Promise.resolve(cached)
 
     const result = baseRequestImage(x, y, level, request)
@@ -200,9 +184,16 @@ export function createPolygonMaskedImageryProvider(
 
     return Promise.resolve(result).then((image) => {
       if (!image) return image
-      const masked = maskImage(image, tileRect, relevant)
-      rememberMaskedTile(cacheKey, masked)
-      return masked
+
+      if (!relevant.length) {
+        const processed = processTile(image, tileRect, [], tone)
+        rememberTile(cacheKey, processed)
+        return processed
+      }
+
+      const processed = processTile(image, tileRect, relevant, tone)
+      rememberTile(cacheKey, processed)
+      return processed
     })
   }
 
