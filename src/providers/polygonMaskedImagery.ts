@@ -20,7 +20,6 @@ interface RingBounds {
 
 const maskCache = new Map<string, HTMLCanvasElement>()
 let maskVersion = 0
-let transparent256: HTMLCanvasElement | null = null
 const MASK_CACHE_LIMIT = 256
 
 export function bumpPolygonMaskVersion(): void {
@@ -72,12 +71,6 @@ function getImageSize(image: ImageryTypes): { width: number; height: number } {
 }
 
 function getTransparentTile(width: number, height: number): HTMLCanvasElement {
-  if (width === 256 && height === 256) {
-    if (!transparent256) transparent256 = document.createElement('canvas')
-    transparent256.width = 256
-    transparent256.height = 256
-    return transparent256
-  }
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height

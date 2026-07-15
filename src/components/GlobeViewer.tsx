@@ -18,20 +18,19 @@ import {
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { getMapProvider } from '../providers/registry'
 import {
-  circleAsRing,
   bumpPolygonMaskVersion,
   createPolygonMaskedImageryProvider,
-  unionRectangleForRings,
 } from '../providers/polygonMaskedImagery'
 import type { LatLonRing } from '../config/districtsByCity/krGuLookup'
 import {
-  getKrGuById,
   isKrGuDistrictKey,
   loadKrGuLookup,
   ringIsRenderable,
   ringToCesiumDegrees,
+  getKrGuById,
 } from '../config/districtsByCity/krGuLookup'
 import { districtKeyForNode } from '../config/districtsByCity/loadDistricts'
+import { buildRevealedRings } from '../utils/revealedRings'
 import { useAnnotationsStore } from '../store/annotationsStore'
 import { useAuthStore } from '../store/authStore'
 import { useGlobeStore } from '../store/globeStore'
@@ -41,7 +40,6 @@ import { countryFromCoords } from '../utils/countryFromCoords'
 import {
   DISTRICT_BORDER_CSS,
   DISTRICT_BORDER_WIDTH,
-  DISTRICT_FILL_RADIUS_M,
   isInSouthKorea,
 } from '../utils/districtKey'
 import { imageryToneForZoomLevel } from '../config/mapColors'
@@ -164,27 +162,6 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     () => new Set(revealedDistrictKeys),
     [revealedDistrictKeys],
   )
-
-  const revealedRings = useMemo(() => {
-    const rings: LatLonRing[] = []
-    const routePoints = routes.flatMap((route) => route.points)
-
-    for (const districtKeyValue of revealedDistrictKeys) {
-      if (isKrGuDistrictKey(districtKeyValue)) {
-        const gu = getKrGuById(districtKeyValue)
-        if (gu?.rings.length) rings.push(...gu.rings)
-        continue
-      }
-
-      const samplePoint =
-        points.find((point) => point.districtKey === districtKeyValue) ??
-        routePoints.find((point) => point.districtKey === districtKeyValue)
-      if (samplePoint) {
-        rings.push(circleAsRing(samplePoint.lat, samplePoint.lon, DISTRICT_FILL_RADIUS_M))
-      }
-    }
-    return rings
-  }, [revealedDistrictKeys, points, routes, krBoundariesReady])
 
   useEffect(() => {
     const needsKr =
@@ -482,59 +459,62 @@ export function GlobeViewer({ className }: GlobeViewerProps) {
     const viewer = viewerRef.current
     if (!viewer || !viewerReady) return
 
-    revealedRingsRef.current = revealedRings
-
-    if (!revealedRings.length) {
-      const existing = colorLayerRef.current
-      if (existing) {
-        viewer.imageryLayers.remove(existing, true)
-        colorLayerRef.current = null
-      }
-      return
-    }
-
-    bumpPolygonMaskVersion()
-    const cutout = unionRectangleForRings(revealedRings)
-    const existing = colorLayerRef.current
-
-    if (existing) {
-      if (cutout) existing.cutoutRectangle = cutout
-      invalidateImageryLayerCache(viewer, existing)
-      return
-    }
-
-    const activeViewer = viewer
     let cancelled = false
 
-    async function addColorLayer() {
-      const base = await getMapProvider('osm').createImageryProvider()
+    async function syncColorLayer() {
+      const activeViewer = viewer
+      if (!activeViewer) return
+
+      if (!revealedDistrictKeys.length) {
+        revealedRingsRef.current = []
+        const existing = colorLayerRef.current
+        if (existing) {
+          activeViewer.imageryLayers.remove(existing, true)
+          colorLayerRef.current = null
+        }
+        return
+      }
+
+      await loadKrGuLookup()
       if (cancelled) return
 
-      const masked = createPolygonMaskedImageryProvider(base, () => revealedRingsRef.current)
-      const layer = activeViewer.imageryLayers.addImageryProvider(masked)
-      layer.saturation = 1
-      layer.brightness = 1
-      if (cutout) layer.cutoutRectangle = cutout
-      const currentZoom = useGlobeStore.getState().zoomLevel
-      layer.show =
-        (currentZoom === 'city' || currentZoom === 'district') &&
-        revealedRingsRef.current.length > 0
-      colorLayerRef.current = layer
+      const routePoints = routes.flatMap((route) => route.points)
+      const rings = buildRevealedRings(revealedDistrictKeys, points, routePoints)
+      revealedRingsRef.current = rings
+
+      if (!rings.length) return
+
+      bumpPolygonMaskVersion()
+
+      let layer = colorLayerRef.current
+      if (!layer) {
+        const base = await getMapProvider('osm').createImageryProvider()
+        if (cancelled) return
+
+        const masked = createPolygonMaskedImageryProvider(base, () => revealedRingsRef.current)
+        layer = activeViewer.imageryLayers.addImageryProvider(masked)
+        layer.saturation = 1
+        layer.brightness = 1
+        colorLayerRef.current = layer
+      } else {
+        invalidateImageryLayerCache(activeViewer, layer)
+      }
+
+      layer.show = useGlobeStore.getState().zoomLevel !== 'world'
+      activeViewer.scene.requestRender()
     }
 
-    void addColorLayer()
+    void syncColorLayer()
 
     return () => {
       cancelled = true
     }
-  }, [viewerReady, revealedDistrictSignature, revealedRings, krBoundariesReady])
+  }, [viewerReady, revealedDistrictSignature, revealedDistrictKeys, points, routes])
 
   useEffect(() => {
     const layer = colorLayerRef.current
     if (!layer) return
-
-    const showAtZoom = zoomLevel === 'city' || zoomLevel === 'district'
-    layer.show = showAtZoom && revealedRingsRef.current.length > 0
+    layer.show = zoomLevel !== 'world' && revealedRingsRef.current.length > 0
   }, [zoomLevel, revealedDistrictSignature, viewerReady])
 
   useEffect(() => {
