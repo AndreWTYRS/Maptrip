@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { hasGoogleMapsApiKey } from '../config/googleMaps'
 import { LOCATION_ZOOM, type LocationTreeNode } from '../config/locationTree'
 import { useGlobeStore } from '../store/globeStore'
 import { useAnnotationsStore } from '../store/annotationsStore'
@@ -71,9 +70,7 @@ export function LocationTreeSidebar() {
   const isSearching = normalizedQuery.length > 0
 
   useEffect(() => {
-    if (hasGoogleMapsApiKey()) {
-      void loadCountries()
-    }
+    void loadCountries()
   }, [loadCountries])
 
   useEffect(() => {
@@ -162,11 +159,8 @@ export function LocationTreeSidebar() {
     (selectedCity && districtsLoadingId === selectedCity.id)
 
   const emptyMessage = useMemo(() => {
-    if (!hasGoogleMapsApiKey()) {
-      return 'Set VITE_GOOGLE_MAPS_API_KEY to load Google locations.'
-    }
     if (countriesError) return countriesError
-    if (isLoading) return 'Loading from Google...'
+    if (isLoading) return 'Loading...'
     if (isSearching && searchLoading) return 'Searching Google Places...'
     if (isSearching && !searchLoading && searchResults.length === 0) return 'No locations found'
     if (selectedCity && visibleDistricts.length === 0) return 'No districts found for this city'

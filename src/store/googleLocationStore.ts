@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ISO_COUNTRY_CODES } from '../config/isoCountryCodes'
-import { loadCitiesForCountry } from '../config/citiesByCountry/loadCities'
+import { hasGoogleMapsApiKey } from '../config/googleMaps'
+import { loadCitiesForCountry, loadCountriesFromOpenData } from '../config/citiesByCountry/loadCities'
 import type { LocationTreeNode } from '../config/locationTree/types'
 import {
   geocodeAllCountries,
@@ -64,24 +65,38 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
 
         set({ countriesLoading: true, countriesError: null })
         try {
+          if (!hasGoogleMapsApiKey()) {
+            const countries = await loadCountriesFromOpenData()
+            set({
+              countries,
+              countriesLoading: false,
+              countriesError: countries.length ? null : 'No countries loaded.',
+            })
+            return countries
+          }
+
           const geocoded = await geocodeAllCountries(ISO_COUNTRY_CODES)
           if (!geocoded.length) {
+            const countries = await loadCountriesFromOpenData()
             set({
+              countries,
               countriesLoading: false,
-              countriesError: 'Google Geocoding API unavailable. Check VITE_GOOGLE_MAPS_API_KEY.',
+              countriesError: countries.length ? null : 'No countries loaded.',
             })
-            return []
+            return countries
           }
 
           const countries = geocoded.map(geocodedToNode)
           set({ countries, countriesLoading: false, countriesError: null })
           return countries
         } catch {
+          const countries = await loadCountriesFromOpenData()
           set({
+            countries,
             countriesLoading: false,
-            countriesError: 'Failed to load countries from Google.',
+            countriesError: countries.length ? null : 'Failed to load countries.',
           })
-          return []
+          return countries
         }
       },
 
