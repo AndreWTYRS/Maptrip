@@ -10,12 +10,10 @@ export interface LocationTreeNode {
   lon: number
   placeId?: string
   countryCode?: string
-  /** H3 cell id for South Korea hex districts */
-  hexId?: string
   /** KOSTAT sigungu code (South Korea) */
   guCode?: string
-  /** All H3 cells merged into this gu-level district entry */
-  hexIds?: string[]
+  /** Official boundary rings as [lat, lon][] (outer rings) */
+  boundaryRings?: Array<Array<[number, number]>>
   /** Local-language district name (e.g. Korean gu name) */
   labelOriginal?: string
   /** English district name */

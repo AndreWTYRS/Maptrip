@@ -178,7 +178,7 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
     }),
     {
       name: 'maptrip-google-locations',
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as {
           countries?: LocationTreeNode[] | null
@@ -191,7 +191,7 @@ export const useGoogleLocationStore = create<GoogleLocationState>()(
           citiesByCountryId: state.citiesByCountryId ?? {},
           reverseGeocodeCache: state.reverseGeocodeCache ?? {},
         }
-        if (version < 2) {
+        if (version < 3) {
           return { ...base, districtsByCityId: {} }
         }
         return { ...base, districtsByCityId: state.districtsByCityId ?? {} }

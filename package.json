@@ -13,7 +13,6 @@
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
     "cesium": "^1.143.0",
-    "h3-js": "^4.5.0",
     "jwt-decode": "^4.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

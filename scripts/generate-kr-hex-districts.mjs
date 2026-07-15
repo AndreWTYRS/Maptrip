@@ -1,6 +1,6 @@
 /**
- * Generates H3 hex districts for South Korean cities from official KOSTAT 2018
- * sigungu (municipality) boundaries (southkorea/southkorea-maps, CC BY 4.0).
+ * Generates official KOSTAT 2018 sigungu (gu) district boundaries for South Korea.
+ * Source: southkorea/southkorea-maps (CC BY 4.0)
  *
  * Usage: node scripts/generate-kr-hex-districts.mjs
  */
@@ -8,26 +8,23 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { feature } from 'topojson-client'
-import { cellToLatLng, polygonToCells } from 'h3-js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
-const H3_RES = 7
 
 const TOPO_PATH = path.join(root, 'data-source', 'kr-municipalities-2018-topo-simple.json')
 const CITIES_PATH = path.join(root, 'public', 'data', 'cities', 'KR.json')
 const OUTPUT_DIR = path.join(root, 'public', 'data', 'districts', 'KR')
 
-/** KOSTAT 2018 sigungu code prefixes for metropolitan cities. */
 const METRO_BY_CITY_ID = {
-  'kr-1835848': '11', // Seoul
-  'kr-1838524': '21', // Busan
-  'kr-1835329': '22', // Daegu
-  'kr-1843564': '23', // Incheon
-  'kr-1841811': '24', // Gwangju (metropolitan)
-  'kr-1835235': '25', // Daejeon
-  'kr-1833747': '26', // Ulsan
-  'kr-11523293': '29', // Sejong
+  'kr-1835848': '11',
+  'kr-1838524': '21',
+  'kr-1835329': '22',
+  'kr-1843564': '23',
+  'kr-1841811': '24',
+  'kr-1835235': '25',
+  'kr-1833747': '26',
+  'kr-11523293': '29',
 }
 
 function pointInRing(lon, lat, ring) {
@@ -59,9 +56,7 @@ function pointInFeature(lon, lat, geometry) {
 
 function featureCentroid(geometry) {
   const coords =
-    geometry.type === 'Polygon'
-      ? geometry.coordinates[0]
-      : geometry.coordinates[0][0]
+    geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0]
   let lonSum = 0
   let latSum = 0
   for (const [lon, lat] of coords) {
@@ -71,32 +66,21 @@ function featureCentroid(geometry) {
   return { lon: lonSum / coords.length, lat: latSum / coords.length }
 }
 
-function hexCellsForPolygonRings(rings) {
-  const cells = new Set()
-  const [outer, ...holes] = rings
-  if (outer.length < 4) return cells
-
-  const loop = [
-    outer.map(([lon, lat]) => [lat, lon]),
-    ...holes.map((hole) => hole.map(([lon, lat]) => [lat, lon])),
-  ]
-
-  try {
-    for (const cell of polygonToCells(loop, H3_RES)) cells.add(cell)
-  } catch {
-    // Skip tiny island polygons that H3 cannot tessellate at this resolution.
+function simplifyRing(lonLatRing, maxPoints = 72) {
+  if (lonLatRing.length <= maxPoints) {
+    return lonLatRing.map(([lon, lat]) => [lat, lon])
   }
-  return cells
+  const step = Math.ceil(lonLatRing.length / maxPoints)
+  return lonLatRing.filter((_, index) => index % step === 0).map(([lon, lat]) => [lat, lon])
 }
 
-function hexCellsForFeature(geometry) {
-  const cells = new Set()
-  const polygonParts = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
-
-  for (const rings of polygonParts) {
-    for (const cell of hexCellsForPolygonRings(rings)) cells.add(cell)
+function ringsFromGeometry(geometry) {
+  const rings = []
+  const parts = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+  for (const part of parts) {
+    if (part[0]?.length >= 4) rings.push(simplifyRing(part[0]))
   }
-  return cells
+  return rings
 }
 
 function sigunguForCity(city, features) {
@@ -121,27 +105,22 @@ function sigunguForCity(city, features) {
   return nearest ? [nearest] : []
 }
 
-function districtNodesForCity(city, sigunguFeatures) {
-  const districts = []
-  const seen = new Set()
+function districtFromSigungu(sigungu) {
+  const guCode = String(sigungu.properties.code)
+  const guName = sigungu.properties.name
+  const guNameEn = sigungu.properties.name_eng || guName
+  const centroid = featureCentroid(sigungu.geometry)
+  const rings = ringsFromGeometry(sigungu.geometry)
 
-  for (const sigungu of sigunguFeatures) {
-    const guName = sigungu.properties.name
-    const guNameEn = sigungu.properties.name_eng || guName
-    const guCode = String(sigungu.properties.code)
-
-    for (const hexId of hexCellsForFeature(sigungu.geometry)) {
-      if (seen.has(hexId)) continue
-      seen.add(hexId)
-
-      const [lat, lon] = cellToLatLng(hexId)
-      // Compact tuple: [hexId, lat, lon, guCode, guName, guNameEn]
-      districts.push([hexId, lat, lon, guCode, guName, guNameEn])
-    }
+  return {
+    id: `kr-gu-${guCode}`,
+    guCode,
+    name: guName,
+    nameEn: guNameEn,
+    lat: centroid.lat,
+    lon: centroid.lon,
+    rings,
   }
-
-  districts.sort((a, b) => a[4].localeCompare(b[4], 'ko') || a[0].localeCompare(b[0]))
-  return districts
 }
 
 if (!fs.existsSync(TOPO_PATH)) {
@@ -154,6 +133,9 @@ const objName = Object.keys(topo.objects)[0]
 const collection = feature(topo, topo.objects[objName])
 const sigunguFeatures = collection.features
 
+const guLookup = sigunguFeatures.map(districtFromSigungu)
+const guByCode = new Map(guLookup.map((gu) => [gu.guCode, gu]))
+
 const cities = JSON.parse(fs.readFileSync(CITIES_PATH, 'utf8'))
 fs.mkdirSync(OUTPUT_DIR, { recursive: true })
 
@@ -162,7 +144,9 @@ let totalDistricts = 0
 
 for (const city of cities) {
   const matched = sigunguForCity(city, sigunguFeatures)
-  const districts = districtNodesForCity(city, matched)
+  const districts = matched
+    .map((sigungu) => districtFromSigungu(sigungu))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
   if (!districts.length) {
     console.warn(`No districts for ${city.label} (${city.id})`)
@@ -172,7 +156,6 @@ for (const city of cities) {
   const payload = {
     cityId: city.id,
     cityLabel: city.label,
-    h3Resolution: H3_RES,
     source: 'KOSTAT 2018 municipalities (southkorea/southkorea-maps)',
     districts,
   }
@@ -185,15 +168,16 @@ for (const city of cities) {
 
 index.sort((a, b) => a.cityLabel.localeCompare(b.cityLabel))
 
+fs.writeFileSync(path.join(OUTPUT_DIR, 'gu-lookup.json'), JSON.stringify(guLookup))
 fs.writeFileSync(
   path.join(OUTPUT_DIR, 'index.json'),
   JSON.stringify(
     {
       countryCode: 'KR',
-      h3Resolution: H3_RES,
       source: 'KOSTAT 2018 municipalities (southkorea/southkorea-maps)',
       cities: index,
       totalDistricts,
+      guCount: guLookup.length,
     },
     null,
     2,
@@ -202,10 +186,11 @@ fs.writeFileSync(
 
 fs.writeFileSync(
   path.join(OUTPUT_DIR, 'ATTRIBUTION.txt'),
-  `South Korea hex districts are derived from KOSTAT 2018 administrative boundaries.
+  `South Korea district boundaries are from KOSTAT 2018 administrative sigungu (gu) polygons.
 Source: https://github.com/southkorea/southkorea-maps (CC BY 4.0)
-Hex grid: Uber H3 resolution ${H3_RES}
 `,
 )
 
-console.log(`Generated ${index.length} city files, ${totalDistricts} hex districts in ${OUTPUT_DIR}`)
+console.log(
+  `Generated ${index.length} city files, ${totalDistricts} district entries, ${guLookup.length} gu boundaries in ${OUTPUT_DIR}`,
+)

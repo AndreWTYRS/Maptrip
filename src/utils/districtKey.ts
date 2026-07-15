@@ -1,11 +1,10 @@
-import { cellToLatLng, latLngToCell } from 'h3-js'
-
-/** ~1.2 km district cell at mid-latitudes (default outside KR) */
+import {
+  findKrGuDistrictKey,
+  getKrGuById,
+  isKrGuDistrictKey,
+} from '../config/districtsByCity/krGuLookup'
 export const LAT_CELL = 0.011
 export const LON_CELL = 0.016
-
-/** H3 resolution for South Korea hex districts (KOSTAT sigungu tessellation). */
-export const KR_H3_RES = 7
 
 const KR_BOUNDS = {
   minLat: 33,
@@ -13,8 +12,6 @@ const KR_BOUNDS = {
   minLon: 124,
   maxLon: 132,
 }
-
-const H3_KEY_RE = /^[0-9a-f]{15}$/i
 
 export function isInSouthKorea(lat: number, lon: number): boolean {
   return (
@@ -25,13 +22,12 @@ export function isInSouthKorea(lat: number, lon: number): boolean {
   )
 }
 
-export function isH3DistrictKey(key: string): boolean {
-  return H3_KEY_RE.test(key)
-}
+export { isKrGuDistrictKey as isH3DistrictKey }
 
 export function districtKey(lat: number, lon: number): string {
   if (isInSouthKorea(lat, lon)) {
-    return latLngToCell(lat, lon, KR_H3_RES)
+    const guKey = findKrGuDistrictKey(lat, lon)
+    if (guKey) return guKey
   }
   const latCell = Math.floor(lat / LAT_CELL)
   const lonCell = Math.floor(lon / LON_CELL)
@@ -39,9 +35,9 @@ export function districtKey(lat: number, lon: number): string {
 }
 
 export function districtCenter(key: string): { lat: number; lon: number } {
-  if (isH3DistrictKey(key)) {
-    const [lat, lon] = cellToLatLng(key)
-    return { lat, lon }
+  if (isKrGuDistrictKey(key)) {
+    const gu = getKrGuById(key)
+    if (gu) return { lat: gu.lat, lon: gu.lon }
   }
   const [latCell, lonCell] = key.split(':').map(Number)
   return {
@@ -54,7 +50,7 @@ export function districtKeysForCoords(coords: Array<{ lat: number; lon: number }
   return [...new Set(coords.map(({ lat, lon }) => districtKey(lat, lon)))]
 }
 
-/** Matches ~district zoom viewport at 800 m camera height (non-H3 fallback) */
+/** Matches ~district zoom viewport at 800 m camera height (non-KR fallback) */
 export const DISTRICT_FILL_RADIUS_M = 750
 
 export const DISTRICT_BORDER_CSS = '#ff1493'

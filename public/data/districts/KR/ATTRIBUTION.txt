@@ -1,3 +1,2 @@
-South Korea hex districts are derived from KOSTAT 2018 administrative boundaries.
+South Korea district boundaries are from KOSTAT 2018 administrative sigungu (gu) polygons.
 Source: https://github.com/southkorea/southkorea-maps (CC BY 4.0)
-Hex grid: Uber H3 resolution 7
